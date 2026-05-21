@@ -1,28 +1,31 @@
 <script setup lang="ts">
 const {
-  size = 'sm',
+  num,
   state = 'default',
 } = defineProps<{
-  size?: 'sm' | 'md'
-  state?: 'default' | 'hover' | 'active' | 'focus' | 'disabled'
+  num: string
+  state?: 'default' | 'active'
 }>()
 
-const sizeClass = size === 'md' ? 'text-[22px]' : 'text-[14px]'
-const stateClass = {
-  default: 'text-secondary',
-  hover: 'text-primary',
-  active: 'text-accent',
-  focus: 'text-primary ring-2 ring-accent ring-offset-2 ring-offset-bg',
-  disabled: 'text-greyed opacity-60',
-}[state]
+const isActive = state === 'active'
 </script>
 
 <template>
   <span
     :data-state="state"
-    class="inline-flex items-center font-mono uppercase tracking-kicker leading-none transition-colors duration-fast ease-out"
-    :class="[sizeClass, stateClass]"
+    class="relative inline-flex flex-col items-center justify-center gap-[10px] transition-[padding] duration-base ease-out"
+    :class="isActive ? 'pl-[8px]' : ''"
   >
-    <slot />
+    <span
+      class="font-mono font-medium text-[11px] leading-[16px] tracking-[0.44px] whitespace-nowrap transition-colors duration-fast ease-out"
+      :class="isActive ? 'text-accent' : 'text-greyed'"
+    >
+      {{ num }}
+    </span>
+    <span
+      aria-hidden="true"
+      class="absolute left-0 top-1/2 h-px -translate-y-1/2 bg-rule transition-[width] duration-[180ms] ease-out"
+      :class="isActive ? 'w-[4px]' : 'w-0'"
+    />
   </span>
 </template>

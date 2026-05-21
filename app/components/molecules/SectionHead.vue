@@ -8,19 +8,21 @@ const { num, kicker, title, as = 'h2' } = defineProps<{
 </script>
 
 <template>
-  <header class="grid grid-cols-[80px_minmax(0,1fr)] gap-x-[24px] items-baseline">
-    <span
-      class="font-sans font-medium text-[36px] leading-[44px] text-greyed tabular-nums"
+  <header class="flex gap-[40px] items-start w-full">
+    <p
+      class="font-sans font-medium not-italic text-[88px] leading-[88px] tracking-[-2px] text-greyed whitespace-nowrap shrink-0"
       aria-hidden="true"
     >
       {{ num }}
-    </span>
-    <div class="space-y-2">
-      <Kicker tone="accent">{{ kicker }}</Kicker>
+    </p>
+    <div class="flex-1 flex flex-col gap-[16px] items-start justify-end min-w-0">
+      <p class="font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-accent whitespace-nowrap">
+        {{ kicker }}
+      </p>
       <component
         :is="as"
         :id="`rule-${num}`"
-        class="font-sans font-medium not-italic text-[20px] md:text-[24px] leading-[30px] tracking-[-0.2px] text-primary scroll-mt-[80px]"
+        class="font-sans font-light italic text-[36px] leading-[44px] text-primary scroll-mt-[80px] w-full"
       >
         {{ title }}
       </component>

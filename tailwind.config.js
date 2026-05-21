@@ -17,6 +17,7 @@ export default {
       colors: {
         primary: 'var(--color-text-primary)',
         secondary: 'var(--color-text-secondary)',
+        mid: 'var(--color-text-mid)',
         greyed: 'var(--color-text-greyed)',
         bg: 'var(--color-bg-page)',
         'bg-card': 'var(--color-bg-card)',

@@ -52,19 +52,15 @@ function isActive(num: string) {
       <div class="h-px w-full bg-rule" aria-hidden="true" />
     </div>
 
-    <nav class="space-y-[6px]" aria-label="Sommaire du chapitre">
-      <a
+    <nav class="flex flex-col gap-[8px]" aria-label="Sommaire du chapitre">
+      <TocItem
         v-for="section in sections"
         :key="section.num"
-        :href="tocItemHref(section.num)"
-        class="block font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] transition-colors duration-fast ease-out"
-        :class="isActive(section.num)
-          ? 'text-accent'
-          : 'text-greyed hover:text-secondary'"
-        :aria-current="isActive(section.num) ? 'location' : undefined"
-      >
-        {{ section.num }} · {{ section.kicker }}
-      </a>
+        :num="section.num"
+        :label="section.kicker"
+        :to="tocItemHref(section.num)"
+        :is-active="isActive(section.num)"
+      />
     </nav>
 
     <div class="h-px w-full bg-rule" aria-hidden="true" />

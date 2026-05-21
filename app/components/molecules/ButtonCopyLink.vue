@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
 
-const { source, idleLabel = 'COPIER LE LIEN', copiedLabel = 'COPIÉ' } = defineProps<{
+const { source, idleLabel = 'COPIER LE LIEN', copiedLabel = 'LIEN COPIÉ ✓' } = defineProps<{
   source?: string
   idleLabel?: string
   copiedLabel?: string
@@ -13,7 +13,7 @@ const target = computed(() => {
   return ''
 })
 
-const { copy, copied, isSupported } = useClipboard({ source: target, copiedDuring: 1800 })
+const { copy, copied, isSupported } = useClipboard({ source: target, copiedDuring: 1500 })
 
 const label = computed(() => copied.value ? copiedLabel : idleLabel)
 
@@ -26,32 +26,29 @@ function handleClick() {
 <template>
   <button
     type="button"
-    :data-state="copied ? 'copied' : 'idle'"
+    :aria-label="`Copier le lien de l'article`"
+    :data-state="copied ? 'pressed' : 'default'"
     :aria-live="copied ? 'polite' : 'off'"
     @click="handleClick"
-    class="group inline-flex items-center gap-2 px-4 py-2 border border-rule rounded-full font-mono text-xs uppercase tracking-kicker text-primary transition-colors duration-base ease-out hover:bg-primary hover:text-bg"
+    class="group inline-flex items-center gap-[8px] pl-[10px] pr-[10px] py-[4px] rounded-[4px] border border-dashed transition-[colors,transform] duration-base ease-out border-primary text-primary hover:border-accent hover:text-accent active:scale-[0.96] data-[state=pressed]:border-accent data-[state=pressed]:text-accent"
   >
+    <span class="font-sans font-semibold text-[10px] leading-[14px] tracking-[0.4px] uppercase whitespace-nowrap">
+      {{ label }}
+    </span>
     <svg
-      v-if="copied"
       aria-hidden="true"
-      width="14" height="14" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" stroke-width="2"
-      stroke-linecap="round" stroke-linejoin="round"
-      class="transition-transform duration-base ease-out scale-110"
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="overflow-visible transition-[opacity,transform] duration-base ease-out rotate-45 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 data-[state=pressed]:opacity-100"
     >
-      <path d="M20 6 9 17l-5-5" />
+      <rect x="2" y="2" width="6" height="8" rx="1" />
+      <path d="M4 0H10V8" />
     </svg>
-    <svg
-      v-else
-      aria-hidden="true"
-      width="14" height="14" viewBox="0 0 24 24"
-      fill="none" stroke="currentColor" stroke-width="2"
-      stroke-linecap="round" stroke-linejoin="round"
-      class="transition-transform duration-base ease-out group-hover:rotate-3"
-    >
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-    <span>{{ label }}</span>
   </button>
 </template>

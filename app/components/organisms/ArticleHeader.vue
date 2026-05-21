@@ -46,39 +46,53 @@ const layoutId = num ? `article-header-${num}` : undefined
   <header
     :data-state="state"
     :data-layout-id="layoutId"
-    class="article-header"
-    :class="align === 'center' ? 'text-center' : 'text-left'"
+    class="article-header flex flex-col items-start w-full"
+    :class="[
+      isFull ? 'gap-[64px]' : 'gap-[12px]',
+      align === 'center' && 'items-center text-center',
+    ]"
   >
-    <p
+    <div
       v-if="metaSegments.length"
-      class="font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-rule"
+      class="flex font-mono font-medium gap-[24px] text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap w-full"
+      :class="align === 'center' ? 'items-center justify-center' : 'items-start'"
     >
-      {{ metaSegments.join(' · ') }}
-    </p>
+      <template v-for="(seg, i) in metaSegments" :key="i">
+        <span>{{ seg }}</span>
+        <span v-if="i < metaSegments.length - 1" aria-hidden="true">·</span>
+      </template>
+    </div>
 
-    <component
-      :is="isFull ? 'h1' : 'p'"
-      class="font-sans font-medium not-italic text-primary tracking-[-0.56px]"
+    <div
+      class="flex flex-col items-start w-full"
       :class="[
-        isFull
-          ? 'text-[36px] md:text-[44px] lg:text-[48px] leading-[1.1] mt-[32px]'
-          : 'text-[28px] md:text-[32px] leading-[1.15] mt-[12px]',
+        isFull ? 'gap-[32px]' : 'gap-[12px]',
+        align === 'center' && 'items-center',
       ]"
     >
-      {{ title }}
-    </component>
+      <component
+        :is="isFull ? 'h1' : 'p'"
+        class="font-sans font-medium not-italic text-primary w-full"
+        :class="[
+          isFull
+            ? 'text-[64px] leading-[72px] tracking-[-1.28px]'
+            : 'text-[32px] leading-[40px] tracking-[-0.64px]',
+        ]"
+      >
+        {{ title }}
+      </component>
 
-    <p
-      v-if="body"
-      class="font-sans font-light italic text-secondary"
-      :class="[
-        isFull
-          ? 'text-[18px] leading-[28px] max-w-[680px] mt-[24px]'
-          : 'text-[16px] leading-[24px] max-w-[640px] mt-[16px]',
-        align === 'center' && 'mx-auto',
-      ]"
-    >
-      {{ body }}
-    </p>
+      <p
+        v-if="body"
+        class="font-sans font-light italic text-secondary w-full"
+        :class="[
+          isFull
+            ? 'text-[22px] leading-[32px]'
+            : 'text-[17px] leading-[26px]',
+        ]"
+      >
+        {{ body }}
+      </p>
+    </div>
   </header>
 </template>

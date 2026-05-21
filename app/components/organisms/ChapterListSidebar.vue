@@ -38,17 +38,17 @@ const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
         <NuxtLink
           v-if="publishedSlugs.has(ch.slug)"
           :to="`/blog/${ch.slug}`"
-          class="block font-mono leading-[16px] text-[11px] tracking-[0.44px] transition-[color,padding] duration-fast ease-out"
+          class="block font-mono leading-[16px] text-[11px] tracking-[0.44px] transition-[color,padding] duration-fast ease-out focus-visible:outline-none focus-visible:border-y focus-visible:border-primary"
           :class="ch.num === currentNum
             ? 'font-medium text-accent pl-[8px]'
-            : 'font-normal text-greyed hover:text-secondary'"
+            : 'font-normal text-greyed hover:text-mid'"
           :aria-current="ch.num === currentNum ? 'page' : undefined"
         >
           {{ ch.num }}
         </NuxtLink>
         <span
           v-else
-          class="block font-mono font-normal leading-[16px] text-[11px] tracking-[0.44px] text-greyed/50 cursor-not-allowed"
+          class="block font-mono font-normal leading-[16px] text-[11px] tracking-[0.44px] text-greyed opacity-40 cursor-not-allowed"
           aria-disabled="true"
           :title="`Chapitre ${ch.num} — à venir`"
         >

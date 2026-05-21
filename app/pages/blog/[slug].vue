@@ -44,7 +44,7 @@ useSeoMeta({
       class="absolute left-[32px] top-[32px] z-10"
     />
 
-    <div class="ml-[300px] grid grid-cols-[minmax(0,786px)_64px_282px] max-xl:grid-cols-[minmax(0,1fr)_32px_240px] max-lg:grid-cols-1 max-lg:gap-y-16 max-lg:ml-0 max-lg:pt-[120px]">
+    <div class="ml-[331px] grid grid-cols-[minmax(0,786px)_49px_282px] max-xl:grid-cols-[minmax(0,1fr)_32px_240px] max-lg:grid-cols-1 max-lg:gap-y-16 max-lg:ml-0 max-lg:pt-[120px]">
       <article class="min-w-0">
         <ArticleHeader
           state="full"
@@ -60,8 +60,8 @@ useSeoMeta({
         <section
           v-for="(section, idx) in chapter.sections"
           :key="section.num"
-          class="space-y-[40px]"
-          :class="idx > 0 && 'border-t border-rule pt-[40px] mt-[40px]'"
+          class="flex flex-col gap-[40px] w-full"
+          :class="idx > 0 && 'mt-[176px] pt-[40px] border-t border-rule'"
         >
           <SectionHead
             :num="section.num"
@@ -70,28 +70,19 @@ useSeoMeta({
             as="h2"
           />
 
-          <div class="grid grid-cols-[80px_minmax(0,1fr)] gap-x-[24px]">
-            <div />
-            <p class="font-sans font-light text-[16px] leading-[28px] text-primary">
-              {{ section.body }}
-            </p>
+          <p class="font-sans font-light text-[16px] leading-[28px] text-primary w-full">
+            {{ section.body }}
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-x-[64px] gap-y-[24px] w-full">
+            <DoDontList variant="do" :items="section.doItems" />
+            <DoDontList variant="dont" :items="section.dontItems" />
           </div>
 
-          <div class="grid grid-cols-[80px_minmax(0,1fr)] gap-x-[24px]">
-            <div />
-            <div class="grid md:grid-cols-2 gap-x-[64px] gap-y-[24px]">
-              <DoDontList variant="do" :items="section.doItems" />
-              <DoDontList variant="dont" :items="section.dontItems" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-[80px_minmax(0,1fr)] gap-x-[24px]">
-            <div />
-            <PullQuote>{{ section.why }}</PullQuote>
-          </div>
+          <PullQuote>{{ section.why }}</PullQuote>
         </section>
 
-        <ClosingBlock :text="chapter.closing" class="mt-[80px] pt-[40px] border-t border-rule" />
+        <ClosingBlock :text="chapter.closing" class="mt-[176px] pt-[40px] border-t border-rule" />
 
         <NextChapterCard
           :next="nextChapter ? {
