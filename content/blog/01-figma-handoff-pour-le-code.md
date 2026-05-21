@@ -1,6 +1,6 @@
 ---
 num: "01"
-slug: "figma-handoff-pour-le-code"
+slug: "01-figma-handoff-pour-le-code"
 title: "Préparer une maquette Figma pour le code."
 lede: "Un dev ou une IA qui intègre ta maquette ne devine pas. Il lit ce que tu as construit."
 publishDate: 2026-05-18
@@ -11,7 +11,7 @@ readingTime: 8
 categories:
   - guides
   - design
-nextSlug: "claude-pour-les-designers"
+nextSlug: "02-claude-pour-les-designers"
 closing: "Le designer ne livre pas un visuel. Il livre une spécification visuelle exécutable. Plus elle est rigoureuse, moins le dev (et l'IA) ont à deviner — et plus le résultat ressemble à ce que tu avais en tête."
 sections:
   - num: "01"

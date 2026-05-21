@@ -1,41 +1,102 @@
 <script setup lang="ts">
+interface GalleryItem {
+  src?: string
+  alt: string
+}
+
 const { gallery } = defineProps<{
-  gallery?: Array<{ src?: string; alt: string; caption?: string }>
+  gallery?: GalleryItem[]
 }>()
 
-const placeholder = [
-  { alt: 'Capture Figma — Auto Layout démonstration', caption: 'Figma · Auto Layout' },
-  { alt: 'Capture Claude Code — workflow handoff', caption: 'Claude · handoff' },
-  { alt: 'Token system Obys-style', caption: 'Tokens · Obys' },
-  { alt: 'Diagramme MCP Figma', caption: 'MCP · pipeline' },
-  { alt: 'Composant Button avec variants', caption: 'Components' },
-  { alt: 'Anatomie d\'un fichier propre', caption: 'Structure' },
+interface Slot {
+  alt: string
+  src?: string
+  width: number
+  height: number
+  rotated?: boolean
+  blendLuminosity?: boolean
+}
+
+const SLOTS: Slot[] = [
+  { alt: 'Capture 01', width: 163, height: 204, blendLuminosity: true },
+  { alt: 'Capture 02', width: 125, height: 162, blendLuminosity: true },
+  { alt: 'Capture 03', width: 130, height: 201, rotated: true, blendLuminosity: true },
+  { alt: 'Capture 04', width: 163, height: 204, blendLuminosity: false },
+  { alt: 'Capture 05', width: 125, height: 162, blendLuminosity: true },
+  { alt: 'Capture 06', width: 130, height: 201, rotated: true, blendLuminosity: true },
+  { alt: 'Capture 07', width: 163, height: 204, blendLuminosity: true },
 ]
 
-const items = computed(() => gallery && gallery.length ? gallery : placeholder)
+const items = computed<Slot[]>(() => {
+  if (!gallery || gallery.length === 0) return SLOTS
+  return SLOTS.map((slot, i) => ({
+    ...slot,
+    src: gallery[i]?.src,
+    alt: gallery[i]?.alt ?? slot.alt,
+  }))
+})
 </script>
 
 <template>
-  <div class="relative grid grid-cols-2 md:grid-cols-3 gap-3" aria-label="Galerie de captures">
-    <figure
-      v-for="(item, i) in items"
-      :key="i"
-      class="relative aspect-[4/5] bg-bg-card border border-rule/15 rounded-sm overflow-hidden group"
+  <div class="relative">
+    <div
+      class="flex flex-col gap-[8px] items-center justify-center"
+      aria-hidden="true"
     >
-      <NuxtImg
-        v-if="item.src"
-        :src="item.src"
-        :alt="item.alt"
-        loading="lazy"
-        class="w-full h-full object-cover transition-transform duration-slow ease-out group-hover:scale-[1.02]"
-      />
-      <div v-else class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-        <Kicker tone="greyed">{{ String(i + 1).padStart(2, '0') }}</Kicker>
-        <span class="mt-2 font-mono text-[10px] uppercase tracking-kicker text-greyed">
-          {{ item.caption ?? 'placeholder' }}
-        </span>
+    <template v-for="(item, i) in items" :key="i">
+      <div
+        v-if="item.rotated"
+        :style="{ width: '201px', height: '130px' }"
+        class="flex items-center justify-center relative shrink-0"
+        :class="item.blendLuminosity && 'mix-blend-luminosity'"
+      >
+        <div class="flex-none rotate-90">
+          <div
+            :style="{ width: `${item.width}px`, height: `${item.height}px` }"
+            class="relative bg-bg-card border border-rule/10 overflow-hidden"
+          >
+            <NuxtImg
+              v-if="item.src"
+              :src="item.src"
+              :alt="item.alt"
+              loading="lazy"
+              class="absolute inset-0 max-w-none object-cover w-full h-full"
+            />
+            <div
+              v-else
+              class="absolute inset-0 flex items-center justify-center text-greyed/40 font-mono text-[10px] uppercase tracking-kicker"
+            >
+              0{{ i + 1 }}
+            </div>
+          </div>
+        </div>
       </div>
-      <figcaption class="sr-only">{{ item.alt }}</figcaption>
-    </figure>
+
+      <div
+        v-else
+        :style="{ width: `${item.width}px`, height: `${item.height}px` }"
+        class="relative shrink-0 bg-bg-card border border-rule/10 overflow-hidden"
+        :class="item.blendLuminosity && 'mix-blend-luminosity'"
+      >
+        <NuxtImg
+          v-if="item.src"
+          :src="item.src"
+          :alt="item.alt"
+          loading="lazy"
+          class="absolute inset-0 max-w-none object-cover w-full h-full"
+        />
+        <div
+          v-else
+          class="absolute inset-0 flex items-center justify-center text-greyed/40 font-mono text-[10px] uppercase tracking-kicker"
+        >
+          0{{ i + 1 }}
+        </div>
+      </div>
+    </template>
+    </div>
+
+    <ul class="sr-only">
+      <li v-for="item in items" :key="item.alt">{{ item.alt }}</li>
+    </ul>
   </div>
 </template>

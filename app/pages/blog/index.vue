@@ -9,57 +9,70 @@ const publishedSlugs = computed(
 
 const featured = computed(() => (chapters.value ?? [])[0] ?? null)
 
+const featuredTags = ['Figma', 'Handoff', 'Checklist']
+
 useSeoMeta({
-  title: 'FIELD® — Notes de terrain entre design, code et IA',
-  description: 'Une série courte sur ce qui se passe entre la maquette et le code, quand un designer, un dev et une IA travaillent sur le même produit.',
-  ogTitle: 'FIELD® — Notes de terrain entre design, code et IA',
+  title: 'FIELD® — Field Notes',
+  description: 'Field Notes est un journal sur ce qui se passe entre la maquette et le code, quand un designer, un dev et une IA travaillent sur le même produit. Chaque chapitre est une étude de cas, règles, erreurs, fix qui marchent.',
+  ogTitle: 'FIELD® — Field Notes',
   ogDescription: 'Design × Code × IA. Règles concrètes, erreurs vécues, fix qui marchent.',
   ogType: 'website',
 })
 </script>
 
 <template>
-  <ScrollProgressBar />
-  <NavTop />
-
-  <main class="mx-auto max-w-7xl px-6 lg:px-12 pb-24">
-    <IntroBlock />
-
-    <Rule class="my-12 md:my-16" />
-
-    <div class="grid lg:grid-cols-[240px_minmax(0,1fr)] gap-12 lg:gap-20">
-      <aside class="lg:sticky lg:top-24 lg:self-start lg:h-fit order-2 lg:order-1">
-        <ChapterListSidebar :published-slugs="publishedSlugs" />
+  <main
+    class="bg-bg min-h-screen flex max-lg:flex-col items-stretch gap-[64px] lg:gap-[128px] p-[32px]"
+  >
+    <div class="flex flex-1 items-center min-w-0 gap-[32px] max-lg:flex-col max-lg:items-start max-lg:gap-[64px]">
+      <aside
+        class="relative flex flex-col items-start justify-center self-stretch w-[22px] max-lg:w-auto max-lg:flex-row max-lg:gap-[32px] max-lg:items-center max-lg:justify-start max-lg:pt-[80px]"
+        aria-label="Chapitres"
+      >
+        <BrandLogo
+          as="link"
+          to="/blog"
+          size="hero"
+          class="absolute left-0 top-0 max-lg:static"
+        />
+        <ChapterListSidebar
+          :current-num="featured?.num ?? '01'"
+          :published-slugs="publishedSlugs"
+        />
       </aside>
 
-      <section class="min-w-0 space-y-16 order-1 lg:order-2">
-        <ImageCardStack />
+      <div
+        class="flex-1 h-px bg-rule self-center max-lg:w-full max-lg:flex-none"
+        aria-hidden="true"
+      />
 
-        <div v-if="featured" class="space-y-6">
-          <Kicker tone="accent">À LA UNE · CHAPITRE {{ featured.num }}</Kicker>
-
-          <NuxtLink :to="`/blog/${featured.slug}`" class="block group">
-            <ArticleHeader
-              state="full"
-              :num="featured.num"
-              kicker="GUIDES · DESIGN"
-              :title="featured.title"
-              :body="featured.lede"
-            />
-
-            <div class="mt-8 inline-flex items-center gap-2 font-sans font-medium text-primary">
-              <span>Lire le chapitre {{ featured.num }}</span>
-              <span aria-hidden="true" class="inline-block transition-transform duration-base ease-out group-hover:translate-x-1">→</span>
-            </div>
-          </NuxtLink>
-        </div>
-
-        <div v-else class="p-8 bg-bg-card/50 border border-dashed border-rule/30 rounded-sm">
-          <BodyText tone="greyed" italic>
-            Aucun chapitre publié pour le moment.
-          </BodyText>
-        </div>
-      </section>
+      <FeaturedCard
+        v-if="featured"
+        :num="featured.num"
+        :slug="featured.slug"
+        :title="featured.title"
+        :lede="featured.lede"
+        :reading-time="featured.readingTime"
+        category="FONDAMENTAUX"
+      />
     </div>
+
+    <ImageCardStack class="self-center shrink-0" />
+
+    <aside
+      v-if="featured"
+      class="relative flex flex-col items-end justify-center w-[402px] self-stretch max-lg:w-full"
+      aria-label="Intro et accès article"
+    >
+      <div class="lg:absolute lg:left-0 lg:top-0 lg:w-full max-lg:mb-[64px]">
+        <IntroBlock />
+      </div>
+
+      <CtaReadMore
+        :slug="featured.slug"
+        :tags="featuredTags"
+        :publish-date="featured.publishDate"
+      />
+    </aside>
   </main>
 </template>

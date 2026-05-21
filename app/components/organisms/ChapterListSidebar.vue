@@ -1,57 +1,60 @@
 <script setup lang="ts">
-import { CHAPTERS_MANIFEST, CHAPTER_PARTS, type ChapterPart } from '~/utils/chapters'
+import { CHAPTERS_MANIFEST, type ChapterEntry } from '~/utils/chapters'
 
-const { currentSlug, publishedSlugs } = defineProps<{
-  currentSlug?: string
+const { currentNum, publishedSlugs } = defineProps<{
+  currentNum: string
   publishedSlugs: Set<string>
 }>()
 
-const groupedChapters = computed(() => {
-  const groups: Record<ChapterPart, typeof CHAPTERS_MANIFEST> = { 1: [], 2: [], 3: [] }
-  for (const c of CHAPTERS_MANIFEST) groups[c.part].push(c)
-  return ([1, 2, 3] as const).map((part) => ({
-    part,
-    title: CHAPTER_PARTS[part],
-    chapters: groups[part],
-  }))
-})
-
-function isCurrent(slug: string) {
-  return slug === currentSlug
+function cyclicOrder(active: string, list: ChapterEntry[]): ChapterEntry[] {
+  const total = list.length
+  const activeIdx = list.findIndex((c) => c.num === active)
+  if (activeIdx === -1) return list
+  const itemsBefore = Math.floor((total - 1) / 2)
+  const startIdx = (activeIdx - itemsBefore + total) % total
+  return Array.from({ length: total }, (_, i) => list[(startIdx + i) % total]!)
 }
+
+const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
 </script>
 
 <template>
-  <nav class="space-y-8" aria-label="Sommaire des chapitres">
-    <div v-for="group in groupedChapters" :key="group.part" class="space-y-3">
-      <Kicker tone="greyed">
-        Partie {{ group.part.toString().padStart(2, '0') }} · {{ group.title }}
-      </Kicker>
-      <ul class="space-y-0.5 list-none">
-        <li v-for="ch in group.chapters" :key="ch.num">
-          <NuxtLink
-            v-if="publishedSlugs.has(ch.slug)"
-            :to="`/blog/${ch.slug}`"
-            class="group flex items-baseline gap-3 py-1.5 transition-colors duration-fast ease-out"
-            :class="isCurrent(ch.slug)
-              ? 'text-primary'
-              : 'text-secondary hover:text-primary'"
-            :aria-current="isCurrent(ch.slug) ? 'page' : undefined"
-          >
-            <span class="font-mono text-xs tabular-nums w-6 shrink-0">{{ ch.num }}</span>
-            <span class="font-sans text-sm leading-tight">{{ ch.shortTitle }}</span>
-          </NuxtLink>
-          <div
-            v-else
-            class="flex items-baseline gap-3 py-1.5 text-greyed"
-            aria-disabled="true"
-          >
-            <span class="font-mono text-xs tabular-nums w-6 shrink-0">{{ ch.num }}</span>
-            <span class="font-sans text-sm leading-tight italic">{{ ch.shortTitle }}</span>
-            <span class="font-mono text-[10px] uppercase tracking-kicker text-greyed/60 ml-auto whitespace-nowrap">à venir</span>
-          </div>
-        </li>
-      </ul>
-    </div>
+  <nav
+    class="relative flex flex-col items-start gap-[6px] w-[22px]"
+    aria-label="Chapitres"
+  >
+    <span
+      aria-hidden="true"
+      class="absolute left-0 top-1/2 w-[4px] border-t border-rule -translate-y-1/2"
+    />
+
+    <ul role="list" class="contents">
+      <li
+        v-for="ch in ordered"
+        :key="ch.num"
+        role="listitem"
+        class="flex justify-center w-full"
+      >
+        <NuxtLink
+          v-if="publishedSlugs.has(ch.slug)"
+          :to="`/blog/${ch.slug}`"
+          class="block font-mono leading-[16px] text-[11px] tracking-[0.44px] transition-[color,padding] duration-fast ease-out"
+          :class="ch.num === currentNum
+            ? 'font-medium text-accent pl-[8px]'
+            : 'font-normal text-greyed hover:text-secondary'"
+          :aria-current="ch.num === currentNum ? 'page' : undefined"
+        >
+          {{ ch.num }}
+        </NuxtLink>
+        <span
+          v-else
+          class="block font-mono font-normal leading-[16px] text-[11px] tracking-[0.44px] text-greyed/50 cursor-not-allowed"
+          aria-disabled="true"
+          :title="`Chapitre ${ch.num} — à venir`"
+        >
+          {{ ch.num }}
+        </span>
+      </li>
+    </ul>
   </nav>
 </template>

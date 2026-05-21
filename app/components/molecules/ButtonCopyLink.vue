@@ -18,18 +18,18 @@ const { copy, copied, isSupported } = useClipboard({ source: target, copiedDurin
 const label = computed(() => copied.value ? copiedLabel : idleLabel)
 
 function handleClick() {
-  if (target.value) copy(target.value)
+  if (!isSupported.value || !target.value) return
+  copy(target.value)
 }
 </script>
 
 <template>
   <button
     type="button"
-    :disabled="!isSupported"
     :data-state="copied ? 'copied' : 'idle'"
     :aria-live="copied ? 'polite' : 'off'"
     @click="handleClick"
-    class="group inline-flex items-center gap-2 px-4 py-2 border border-rule rounded-full font-mono text-xs uppercase tracking-kicker text-primary transition-colors duration-base ease-out hover:bg-primary hover:text-bg disabled:opacity-50 disabled:cursor-not-allowed"
+    class="group inline-flex items-center gap-2 px-4 py-2 border border-rule rounded-full font-mono text-xs uppercase tracking-kicker text-primary transition-colors duration-base ease-out hover:bg-primary hover:text-bg"
   >
     <svg
       v-if="copied"
