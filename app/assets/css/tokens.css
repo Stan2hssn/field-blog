@@ -1,0 +1,33 @@
+:root {
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #52524f;
+  --color-text-greyed: #c4c4c2;
+  --color-bg-page: #ffffff;
+  --color-bg-card: #f7f7f5;
+  --color-accent: #ff4d1f;
+  --color-rule: #15151a;
+  --color-cream-text-primary: #1a1815;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --tracking-kicker: 0.11em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  --dur-fast: 80ms;
+  --dur-base: 200ms;
+  --dur-slow: 400ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}

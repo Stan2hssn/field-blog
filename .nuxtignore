@@ -1,0 +1,7 @@
+# Exclude non-optimized media from build
+public/images/**/*.jpg
+public/images/**/*.jpeg
+public/images/**/*.png
+public/videos/**/*.mp4
+public/videos/**/*.mov
+public/videos/**/*.webm

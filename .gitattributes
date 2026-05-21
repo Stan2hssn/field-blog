@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+*.webp filter= diff= merge= -text
+*.mp4 filter= diff= merge= -text
+*.jpg filter= diff= merge= -text
+*.jpeg filter= diff= merge= -text
+*.png filter= diff= merge= -text
+*.glb filter= diff= merge= -text
+*.gltf filter= diff= merge= -text
+*.webm filter= diff= merge= -text
+*.mov filter= diff= merge= -text
+*.avi filter= diff= merge= -text
