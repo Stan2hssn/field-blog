@@ -8,16 +8,24 @@ const { num, kicker, title, as = 'h2' } = defineProps<{
 </script>
 
 <template>
-  <header :id="`rule-${num}`" class="space-y-3 scroll-mt-24">
-    <div class="flex items-baseline gap-4">
-      <span class="font-mono text-sm tabular-nums text-greyed leading-none">{{ num }}</span>
-      <Kicker tone="accent">{{ kicker }}</Kicker>
-    </div>
-    <component
-      :is="as"
-      class="font-sans text-2xl md:text-3xl font-medium leading-tight text-primary"
+  <header
+    :id="`rule-${num}`"
+    class="grid grid-cols-[80px_minmax(0,1fr)] gap-x-[24px] items-baseline scroll-mt-24"
+  >
+    <span
+      class="font-sans font-medium text-[36px] leading-[44px] text-greyed tabular-nums"
+      aria-hidden="true"
     >
-      {{ title }}
-    </component>
+      {{ num }}
+    </span>
+    <div class="space-y-2">
+      <Kicker tone="accent">{{ kicker }}</Kicker>
+      <component
+        :is="as"
+        class="font-sans font-medium not-italic text-[20px] md:text-[24px] leading-[30px] tracking-[-0.2px] text-primary"
+      >
+        {{ title }}
+      </component>
+    </div>
   </header>
 </template>

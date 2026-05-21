@@ -2,49 +2,73 @@
 const {
   state = 'full',
   num,
-  kicker,
+  category,
+  publishDate,
+  readingTime,
   title,
   body,
+  prefix,
 } = defineProps<{
   state?: 'full' | 'preview'
   num?: string
-  kicker?: string
+  category?: string
+  publishDate?: Date | string
+  readingTime?: number
   title: string
   body?: string
+  prefix?: string
 }>()
 
 const isFull = state === 'full'
+
+const formattedDate = computed(() => {
+  if (!publishDate) return ''
+  const d = typeof publishDate === 'string' ? new Date(publishDate) : publishDate
+  return d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()
+})
+
+const metaSegments = computed(() => {
+  const parts: string[] = []
+  if (prefix) parts.push(prefix.toUpperCase())
+  if (num) parts.push(`CHAPITRE ${num}`)
+  if (category) parts.push(category.toUpperCase())
+  if (formattedDate.value) parts.push(formattedDate.value)
+  if (readingTime !== undefined) parts.push(`${readingTime} MIN`)
+  return parts
+})
+
 const layoutId = num ? `article-header-${num}` : undefined
 </script>
 
 <template>
-  <header
-    :data-state="state"
-    :data-layout-id="layoutId"
-    class="article-header"
-  >
-    <div v-if="num || kicker" class="flex items-center gap-4 mb-4">
-      <span v-if="num" class="font-mono text-sm tabular-nums text-greyed leading-none">
-        Chapitre {{ num }}
-      </span>
-      <Rule v-if="num && kicker" orientation="vertical" class="h-3" tone="greyed" />
-      <Kicker v-if="kicker" tone="secondary">{{ kicker }}</Kicker>
-    </div>
+  <header :data-state="state" :data-layout-id="layoutId" class="article-header">
+    <p
+      v-if="metaSegments.length"
+      class="font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-rule"
+    >
+      {{ metaSegments.join(' · ') }}
+    </p>
 
     <component
       :is="isFull ? 'h1' : 'p'"
-      class="font-sans font-light italic text-primary tracking-tight"
-      :class="isFull
-        ? 'text-4xl md:text-5xl lg:text-6xl leading-[1.05]'
-        : 'text-2xl md:text-3xl leading-tight'"
+      class="font-sans font-medium not-italic text-primary tracking-[-0.56px]"
+      :class="[
+        isFull
+          ? 'text-[36px] md:text-[44px] lg:text-[48px] leading-[1.1] mt-[32px]'
+          : 'text-[28px] md:text-[32px] leading-[1.15] mt-[12px]',
+      ]"
     >
       {{ title }}
     </component>
 
     <p
       v-if="body"
-      class="mt-4 font-sans font-light text-secondary"
-      :class="isFull ? 'text-lg md:text-xl max-w-2xl' : 'text-base max-w-md'"
+      class="font-sans font-light italic text-secondary"
+      :class="[
+        isFull
+          ? 'text-[18px] leading-[28px] max-w-[680px] mt-[24px]'
+          : 'text-[16px] leading-[24px] max-w-[640px] mt-[16px]',
+      ]"
     >
       {{ body }}
     </p>

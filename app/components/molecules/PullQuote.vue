@@ -5,10 +5,10 @@ const { kicker = 'POURQUOI' } = defineProps<{
 </script>
 
 <template>
-  <blockquote class="relative pl-6 py-4 space-y-3 border-l-2 border-accent bg-bg-card/50">
-    <Kicker tone="accent">{{ kicker }}</Kicker>
-    <BodyText size="lg" italic tone="primary">
+  <blockquote class="space-y-3">
+    <Kicker tone="greyed">{{ kicker }}</Kicker>
+    <p class="font-sans font-light italic text-[15px] leading-[24px] text-primary">
       <slot />
-    </BodyText>
+    </p>
   </blockquote>
 </template>

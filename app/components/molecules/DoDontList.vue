@@ -5,27 +5,19 @@ const { variant, label, items } = defineProps<{
   items: string[]
 }>()
 
-const defaultLabel = variant === 'do' ? 'À FAIRE' : 'À ÉVITER'
-const finalLabel = label ?? defaultLabel
-const iconColor = variant === 'do' ? 'text-primary' : 'text-accent'
-const icon = variant === 'do' ? '+' : '×'
+const finalLabel = label ?? (variant === 'do' ? 'À FAIRE' : 'À ÉVITER')
 </script>
 
 <template>
   <div class="space-y-3" :data-variant="variant">
-    <Kicker :tone="variant === 'do' ? 'secondary' : 'accent'">{{ finalLabel }}</Kicker>
-    <ul class="space-y-2 list-none">
+    <Kicker tone="greyed">{{ finalLabel }}</Kicker>
+    <ul class="space-y-1.5 list-none">
       <li
         v-for="item in items"
         :key="item"
-        class="flex items-start gap-3 font-sans text-base font-light leading-relaxed text-primary"
+        class="font-sans font-light text-[14px] leading-[22px] text-primary"
       >
-        <span
-          aria-hidden="true"
-          class="font-mono text-lg leading-none mt-0.5 shrink-0 w-4"
-          :class="iconColor"
-        >{{ icon }}</span>
-        <span>{{ item }}</span>
+        {{ item }}
       </li>
     </ul>
   </div>
