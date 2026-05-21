@@ -1,47 +1,54 @@
 <script setup lang="ts">
-const { next } = defineProps<{
-  next: {
-    num: string
-    slug: string
-    title: string
-    lede: string
-    kicker?: string
-  } | null
-}>()
+interface NextChapter {
+  num: string
+  slug: string
+  title: string
+  lede: string
+  category?: string
+  publishDate?: Date | string
+  readingTime?: number
+}
 
-const to = computed(() => next ? `/blog/${next.slug}` : null)
+const { next } = defineProps<{
+  next: NextChapter | null
+}>()
 </script>
 
 <template>
-  <section v-if="next && to" class="border-t border-rule/30 pt-12">
+  <section class="border-t border-rule pt-[60px] md:pt-[80px]">
     <NuxtLink
-      :to="to"
-      class="group block p-8 md:p-10 bg-bg-card border border-rule/20 rounded-sm transition-colors duration-base ease-out hover:border-rule/60"
+      v-if="next"
+      :to="`/blog/${next.slug}`"
+      class="group block text-center space-y-[40px]"
+      :aria-label="`Chapitre suivant : ${next.title}`"
     >
-      <div class="mb-6">
-        <Kicker tone="accent">CHAPITRE SUIVANT</Kicker>
-      </div>
-
       <ArticleHeader
         state="preview"
+        align="center"
+        prefix="SUITE"
         :num="next.num"
-        :kicker="next.kicker"
+        :category="next.category"
+        :publish-date="next.publishDate"
+        :reading-time="next.readingTime"
         :title="next.title"
         :body="next.lede"
       />
 
-      <div class="mt-8 inline-flex items-center gap-2 font-sans font-medium text-primary">
-        <span>Lire le chapitre {{ next.num }}</span>
-        <span aria-hidden="true" class="inline-block transition-transform duration-base ease-out group-hover:translate-x-1">→</span>
+      <div
+        class="inline-flex items-center gap-2 font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-accent group-hover:underline underline-offset-[4px]"
+      >
+        <span>LIRE LE CHAPITRE</span>
+        <span
+          aria-hidden="true"
+          class="inline-block transition-transform duration-base ease-out group-hover:translate-x-1"
+        >→</span>
       </div>
     </NuxtLink>
-  </section>
 
-  <section v-else class="border-t border-rule/30 pt-12">
-    <div class="p-8 md:p-10 bg-bg-card/50 border border-dashed border-rule/30 rounded-sm">
+    <div v-else class="text-center space-y-3">
       <Kicker tone="greyed">CHAPITRE SUIVANT</Kicker>
       <BodyText tone="greyed" italic class="mt-3">
-        Le chapitre suivant n'est pas encore disponible.
+        Le prochain chapitre n'est pas encore disponible.
       </BodyText>
     </div>
   </section>

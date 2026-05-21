@@ -1,35 +1,37 @@
-export function useScrollSpy(selector = 'h2[id], h3[id]') {
+export function useScrollSpy(selector = 'h2[id], h3[id]', triggerRatio = 0.3) {
   const activeId = ref<string | null>(null)
 
   if (import.meta.client) {
-    let observer: IntersectionObserver | null = null
-    const observed = new Map<Element, string>()
+    let elements: HTMLElement[] = []
 
-    onMounted(() => {
-      observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            const id = observed.get(entry.target)
-            if (entry.isIntersecting && id) {
-              activeId.value = id
-            }
-          }
-        },
-        { rootMargin: '-20% 0px -70% 0px', threshold: 0 },
-      )
-
-      const elements = document.querySelectorAll<HTMLElement>(selector)
+    const update = () => {
+      if (!elements.length) return
+      const trigger = window.innerHeight * triggerRatio
+      let candidate: string | null = null
       for (const el of elements) {
-        if (el.id) {
-          observed.set(el, el.id)
-          observer.observe(el)
+        const top = el.getBoundingClientRect().top
+        if (top <= trigger) {
+          candidate = el.id
+        } else {
+          break
         }
       }
+      if (!candidate && elements[0]) {
+        candidate = elements[0].id
+      }
+      activeId.value = candidate
+    }
+
+    onMounted(() => {
+      elements = Array.from(document.querySelectorAll<HTMLElement>(selector))
+      update()
+      window.addEventListener('scroll', update, { passive: true })
+      window.addEventListener('resize', update)
     })
 
     onScopeDispose(() => {
-      observer?.disconnect()
-      observed.clear()
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
     })
   }
 

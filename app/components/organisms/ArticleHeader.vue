@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const {
   state = 'full',
+  align = 'left',
   num,
   category,
   publishDate,
@@ -10,6 +11,7 @@ const {
   prefix,
 } = defineProps<{
   state?: 'full' | 'preview'
+  align?: 'left' | 'center'
   num?: string
   category?: string
   publishDate?: Date | string
@@ -41,7 +43,12 @@ const layoutId = num ? `article-header-${num}` : undefined
 </script>
 
 <template>
-  <header :data-state="state" :data-layout-id="layoutId" class="article-header">
+  <header
+    :data-state="state"
+    :data-layout-id="layoutId"
+    class="article-header"
+    :class="align === 'center' ? 'text-center' : 'text-left'"
+  >
     <p
       v-if="metaSegments.length"
       class="font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-rule"
@@ -68,6 +75,7 @@ const layoutId = num ? `article-header-${num}` : undefined
         isFull
           ? 'text-[18px] leading-[28px] max-w-[680px] mt-[24px]'
           : 'text-[16px] leading-[24px] max-w-[640px] mt-[16px]',
+        align === 'center' && 'mx-auto',
       ]"
     >
       {{ body }}

@@ -92,6 +92,19 @@ useSeoMeta({
         </section>
 
         <ClosingBlock :text="chapter.closing" class="mt-[80px] pt-[40px] border-t border-rule" />
+
+        <NextChapterCard
+          :next="nextChapter ? {
+            num: nextChapter.num,
+            slug: nextChapter.slug,
+            title: nextChapter.title,
+            lede: nextChapter.lede,
+            category: nextChapter.categories[0],
+            publishDate: nextChapter.publishDate,
+            readingTime: nextChapter.readingTime,
+          } : null"
+          class="mt-[80px]"
+        />
       </article>
 
       <div aria-hidden="true" />
@@ -100,20 +113,16 @@ useSeoMeta({
         <AboutPanel
           :publish-date="chapter.publishDate"
           :reading-time="chapter.readingTime"
-          :authors="chapter.authors"
           :categories="chapter.categories"
+          :sections="chapter.sections.map(s => ({ num: s.num, kicker: s.kicker }))"
+          :next="nextChapter ? {
+            num: nextChapter.num,
+            slug: nextChapter.slug,
+            title: nextChapter.title,
+            lede: nextChapter.lede,
+          } : null"
         />
       </aside>
     </div>
-
-    <NextChapterCard
-      :next="nextChapter ? {
-        num: nextChapter.num,
-        slug: nextChapter.slug,
-        title: nextChapter.title,
-        lede: nextChapter.lede,
-      } : null"
-      class="ml-[300px] mt-[120px] max-lg:ml-0"
-    />
   </main>
 </template>
