@@ -14,8 +14,12 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
-      routes: ['/', '/blog'],
+      routes: ['/blog'],
     },
+  },
+
+  routeRules: {
+    '/': { redirect: { to: '/blog', statusCode: 301 } },
   },
 
   app: {
