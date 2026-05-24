@@ -6,6 +6,8 @@ const { currentNum, publishedSlugs } = defineProps<{
   publishedSlugs: Set<string>
 }>()
 
+const emit = defineEmits<{ select: [num: string] }>()
+
 function cyclicOrder(active: string, list: ChapterEntry[]): ChapterEntry[] {
   const total = list.length
   const activeIdx = list.findIndex((c) => c.num === active)
@@ -16,6 +18,12 @@ function cyclicOrder(active: string, list: ChapterEntry[]): ChapterEntry[] {
 }
 
 const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
+
+function handleClick(num: string, isPublished: boolean, e: MouseEvent) {
+  e.preventDefault()
+  if (!isPublished) return
+  emit('select', num)
+}
 </script>
 
 <template>
@@ -28,7 +36,12 @@ const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
       class="absolute left-0 top-1/2 w-[4px] border-t border-rule -translate-y-1/2"
     />
 
-    <ul role="list" class="contents">
+    <TransitionGroup
+      tag="ul"
+      name="rail"
+      role="list"
+      class="contents"
+    >
       <li
         v-for="ch in ordered"
         :key="ch.num"
@@ -44,6 +57,7 @@ const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
             ? 'font-medium text-accent pl-[8px]'
             : 'font-normal text-greyed hover:text-mid'"
           :aria-current="ch.num === currentNum ? 'page' : undefined"
+          @click="handleClick(ch.num, true, $event)"
         >
           {{ ch.num }}
         </NuxtLink>
@@ -56,6 +70,35 @@ const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
           {{ ch.num }}
         </span>
       </li>
-    </ul>
+    </TransitionGroup>
   </nav>
 </template>
+
+<style scoped>
+.rail-move {
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rail-enter-active,
+.rail-leave-active {
+  transition: opacity 180ms ease-out, transform 220ms ease-out;
+}
+.rail-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.rail-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.rail-leave-active {
+  position: absolute;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-move,
+  .rail-enter-active,
+  .rail-leave-active {
+    transition: none;
+  }
+}
+</style>

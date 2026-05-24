@@ -40,7 +40,7 @@ useSeoMeta({
     Aller au contenu
   </a>
 
-  <main v-if="chapter" id="main-content" class="relative bg-bg min-h-screen p-[32px]">
+  <main v-if="chapter" id="main-content" class="page-scrollable relative bg-bg min-h-screen p-[32px]">
     <BrandLogo
       as="link"
       to="/blog"

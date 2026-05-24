@@ -4,6 +4,14 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100dvh;
+  width: 100dvw;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
@@ -17,6 +25,12 @@ body {
   color: var(--color-text-primary);
   background: var(--color-bg-page);
   line-height: 1.5;
+}
+
+body.page-scrollable,
+body:has(.page-scrollable) {
+  height: auto;
+  overflow: auto;
 }
 
 img,
