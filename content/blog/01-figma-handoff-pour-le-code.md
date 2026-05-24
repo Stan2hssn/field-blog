@@ -12,6 +12,10 @@ categories:
   - guides
   - design
 nextSlug: "02-claude-pour-les-designers"
+tags:
+  - "Figma"
+  - "Handoff"
+  - "Checklist"
 closing: "Le designer ne livre pas un visuel. Il livre une spécification visuelle exécutable. Plus elle est rigoureuse, moins le dev (et l'IA) ont à deviner — et plus le résultat ressemble à ce que tu avais en tête."
 sections:
   - num: "01"

@@ -108,10 +108,10 @@ function isActive(num: string) {
         <p class="font-sans font-light italic text-[13px] leading-[20px] text-secondary">
           {{ next.lede }}
         </p>
-        <div class="inline-flex items-center gap-2 font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-accent">
+        <span class="inline-flex items-center gap-2 font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-accent">
           <span>LIRE LE CHAPITRE</span>
-          <span aria-hidden="true" class="inline-block transition-transform duration-base ease-out group-hover:translate-x-1">→</span>
-        </div>
+          <span aria-hidden="true" class="inline-block transition-transform duration-[200ms] ease-out group-hover:translate-x-[2px] motion-reduce:transition-none">→</span>
+        </span>
       </NuxtLink>
     </div>
   </aside>

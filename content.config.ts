@@ -14,6 +14,7 @@ export default defineContentConfig({
         authors: z.array(z.string()),
         readingTime: z.number(),
         categories: z.array(z.enum(['guides', 'design', 'ia', 'expert'])),
+        tags: z.array(z.string()).optional(),
         nextSlug: z.string().optional(),
         sections: z.array(
           z.object({

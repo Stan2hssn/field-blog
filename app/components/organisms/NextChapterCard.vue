@@ -34,15 +34,15 @@ const { next } = defineProps<{
         :body="next.lede"
       />
 
-      <div
+      <span
         class="inline-flex items-center gap-2 font-mono font-medium uppercase tracking-kicker text-[11px] leading-[16px] text-accent group-hover:underline underline-offset-[4px]"
       >
         <span>LIRE LE CHAPITRE</span>
         <span
           aria-hidden="true"
-          class="inline-block transition-transform duration-base ease-out group-hover:translate-x-1"
+          class="inline-block transition-transform duration-[200ms] ease-out group-hover:translate-x-[2px] motion-reduce:transition-none"
         >→</span>
-      </div>
+      </span>
     </NuxtLink>
 
     <div v-else class="text-center space-y-3">

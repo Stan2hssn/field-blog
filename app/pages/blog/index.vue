@@ -9,7 +9,7 @@ const publishedSlugs = computed(
 
 const featured = computed(() => (chapters.value ?? [])[0] ?? null)
 
-const featuredTags = ['Figma', 'Handoff', 'Checklist']
+const featuredTags = computed(() => featured.value?.tags ?? ['Figma', 'Handoff', 'Checklist'])
 
 useSeoMeta({
   title: 'Field Notes — Index',
@@ -75,6 +75,10 @@ useSeoMeta({
         :tags="featuredTags"
         :publish-date="featured.publishDate"
       />
+
+      <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:bg-bg focus:border focus:border-primary focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:uppercase focus:tracking-kicker">
+        Aller au contenu
+      </a>
     </aside>
   </main>
 </template>

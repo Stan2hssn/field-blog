@@ -25,9 +25,9 @@ const { data: nextChapter } = await useAsyncData(
 const primaryCategory = computed(() => chapter.value?.categories[0] ?? 'guides')
 
 useSeoMeta({
-  title: () => chapter.value?.title,
+  title: () => `${chapter.value?.title ?? ''} — FIELD`,
   description: () => chapter.value?.lede,
-  ogTitle: () => chapter.value?.title,
+  ogTitle: () => `${chapter.value?.title ?? ''} — FIELD`,
   ogDescription: () => chapter.value?.lede,
   ogType: 'article',
 })
@@ -36,12 +36,16 @@ useSeoMeta({
 <template>
   <ScrollProgressBar />
 
-  <main v-if="chapter" class="relative bg-bg min-h-screen p-[32px]">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:bg-bg focus:border focus:border-primary focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:uppercase focus:tracking-kicker">
+    Aller au contenu
+  </a>
+
+  <main v-if="chapter" id="main-content" class="relative bg-bg min-h-screen p-[32px]">
     <BrandLogo
       as="link"
       to="/blog"
       size="hero"
-      class="absolute left-[32px] top-[32px] z-10"
+      class="fixed left-[32px] top-[32px] z-40"
     />
 
     <div class="ml-[331px] grid grid-cols-[minmax(0,786px)_49px_282px] max-xl:grid-cols-[minmax(0,1fr)_32px_240px] max-lg:grid-cols-1 max-lg:gap-y-16 max-lg:ml-0 max-lg:pt-[120px]">

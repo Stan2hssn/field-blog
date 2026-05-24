@@ -6,14 +6,20 @@ const { variant, label, items } = defineProps<{
 }>()
 
 const finalLabel = label ?? (variant === 'do' ? 'À FAIRE' : 'À ÉVITER')
+const labelColor = variant === 'do' ? 'text-primary' : 'text-secondary'
+const labelId = useId()
 </script>
 
 <template>
   <div class="flex flex-col gap-[16px] items-start w-[361px] max-w-full pt-[16px] border-t border-rule" :data-variant="variant">
-    <p class="font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-primary whitespace-nowrap">
+    <p
+      :id="labelId"
+      class="font-mono font-medium text-[11px] leading-[16px] tracking-kicker whitespace-nowrap"
+      :class="labelColor"
+    >
       {{ finalLabel }}
     </p>
-    <ul class="flex flex-col gap-[12px] w-full list-none">
+    <ul class="flex flex-col gap-[12px] w-full list-none" :aria-labelledby="labelId">
       <li
         v-for="item in items"
         :key="item"

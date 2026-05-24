@@ -35,64 +35,96 @@ const items = computed<Slot[]>(() => {
     alt: gallery[i]?.alt ?? slot.alt,
   }))
 })
+
+const hydrated = ref(false)
+const isVisible = ref(true)
+const wrapper = useTemplateRef<HTMLElement>('wrapper')
+
+onMounted(() => {
+  hydrated.value = true
+  if (typeof IntersectionObserver === 'undefined' || !wrapper.value) return
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0]
+      if (entry) isVisible.value = entry.isIntersecting
+    },
+    { rootMargin: '200px' },
+  )
+  observer.observe(wrapper.value)
+  onScopeDispose(() => observer.disconnect())
+})
 </script>
 
 <template>
-  <div class="relative">
+  <div ref="wrapper" class="relative" :data-visible="isVisible">
     <div
+      v-if="!hydrated"
+      aria-hidden="true"
+      class="flex flex-col gap-[8px] items-center justify-center animate-pulse"
+    >
+      <div
+        v-for="(item, i) in items"
+        :key="i"
+        :style="{ width: `${item.rotated ? 201 : item.width}px`, height: `${item.rotated ? 130 : item.height}px` }"
+        class="bg-bg-card shrink-0"
+      />
+    </div>
+
+    <div
+      v-else
       class="flex flex-col gap-[8px] items-center justify-center"
       aria-hidden="true"
     >
-    <template v-for="(item, i) in items" :key="i">
-      <div
-        v-if="item.rotated"
-        :style="{ width: '201px', height: '130px' }"
-        class="flex items-center justify-center relative shrink-0"
-        :class="item.blendLuminosity && 'mix-blend-luminosity'"
-      >
-        <div class="flex-none rotate-90">
-          <div
-            :style="{ width: `${item.width}px`, height: `${item.height}px` }"
-            class="relative bg-bg-card border border-rule/10 overflow-hidden"
-          >
-            <NuxtImg
-              v-if="item.src"
-              :src="item.src"
-              :alt="item.alt"
-              loading="lazy"
-              class="absolute inset-0 max-w-none object-cover w-full h-full"
-            />
+      <template v-for="(item, i) in items" :key="i">
+        <div
+          v-if="item.rotated"
+          :style="{ width: '201px', height: '130px' }"
+          class="flex items-center justify-center relative shrink-0"
+          :class="item.blendLuminosity && 'mix-blend-luminosity'"
+        >
+          <div class="flex-none rotate-90">
             <div
-              v-else
-              class="absolute inset-0 flex items-center justify-center text-greyed/40 font-mono text-[10px] uppercase tracking-kicker"
+              :style="{ width: `${item.width}px`, height: `${item.height}px` }"
+              class="relative bg-bg-card border border-rule/10 overflow-hidden"
             >
-              0{{ i + 1 }}
+              <NuxtImg
+                v-if="item.src && isVisible"
+                :src="item.src"
+                :alt="item.alt"
+                loading="lazy"
+                class="absolute inset-0 max-w-none object-cover w-full h-full"
+              />
+              <div
+                v-else
+                class="absolute inset-0 flex items-center justify-center text-greyed/40 font-mono text-[10px] uppercase tracking-kicker"
+              >
+                0{{ i + 1 }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div
-        v-else
-        :style="{ width: `${item.width}px`, height: `${item.height}px` }"
-        class="relative shrink-0 bg-bg-card border border-rule/10 overflow-hidden"
-        :class="item.blendLuminosity && 'mix-blend-luminosity'"
-      >
-        <NuxtImg
-          v-if="item.src"
-          :src="item.src"
-          :alt="item.alt"
-          loading="lazy"
-          class="absolute inset-0 max-w-none object-cover w-full h-full"
-        />
         <div
           v-else
-          class="absolute inset-0 flex items-center justify-center text-greyed/40 font-mono text-[10px] uppercase tracking-kicker"
+          :style="{ width: `${item.width}px`, height: `${item.height}px` }"
+          class="relative shrink-0 bg-bg-card border border-rule/10 overflow-hidden"
+          :class="item.blendLuminosity && 'mix-blend-luminosity'"
         >
-          0{{ i + 1 }}
+          <NuxtImg
+            v-if="item.src && isVisible"
+            :src="item.src"
+            :alt="item.alt"
+            loading="lazy"
+            class="absolute inset-0 max-w-none object-cover w-full h-full"
+          />
+          <div
+            v-else
+            class="absolute inset-0 flex items-center justify-center text-greyed/40 font-mono text-[10px] uppercase tracking-kicker"
+          >
+            0{{ i + 1 }}
+          </div>
         </div>
-      </div>
-    </template>
+      </template>
     </div>
 
     <ul class="sr-only">
