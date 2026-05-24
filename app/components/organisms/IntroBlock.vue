@@ -37,7 +37,7 @@ const { time, tzAbbr } = useClock('Europe/Paris', 'en-US')
       <span class="font-semibold">Field Notes</span><span>
         est un journal sur ce qui se passe entre la maquette et le code,
         quand un designer, un dev et une IA travaillent sur le même produit.
-        Chaque chapitre est une étude de cas, règles, erreurs, fix qui marchent.</span>
+        Chaque chapitre est une étude de cas — règles, erreurs, fix qui marchent.</span>
     </p>
   </div>
 </template>

@@ -3,7 +3,7 @@ const {
   slug,
   tags = [],
   publishDate,
-  label = 'LIRE  →',
+  label = 'LIRE',
 } = defineProps<{
   slug: string
   tags?: string[]
@@ -30,31 +30,31 @@ const isoDate = computed(() =>
 <template>
   <NuxtLink
     :to="`/blog/${slug}`"
-    class="group flex flex-col gap-[16px] w-full"
+    class="group flex flex-col gap-[16px] w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    :aria-label="`Lire l'article : ${tagsLine} — ${formattedDate}`"
   >
     <p
-      class="font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-accent whitespace-pre-wrap group-hover:underline underline-offset-[4px]"
+      class="inline-flex items-center gap-[6px] font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-accent transition-[text-decoration] duration-base ease-out group-hover:underline underline-offset-[4px]"
     >
-      {{ label }}
+      <span>{{ label }}</span>
+      <span
+        aria-hidden="true"
+        class="inline-block transition-transform duration-base ease-out group-hover:translate-x-[2px]"
+      >→</span>
     </p>
 
     <div class="h-px w-full bg-rule" aria-hidden="true" />
 
-    <div class="flex h-[14px] items-center gap-[24px] w-full">
-      <span
-        class="font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap"
-      >
-        {{ tagsLine }}
-      </span>
+    <dl class="flex h-[14px] items-center gap-[24px] w-full font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap">
+      <dt class="sr-only">Sujets</dt>
+      <dd>{{ tagsLine }}</dd>
 
       <span class="flex-1 h-px bg-rule min-w-[8px]" aria-hidden="true" />
 
-      <time
-        :datetime="isoDate"
-        class="font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap"
-      >
-        {{ formattedDate }}
-      </time>
-    </div>
+      <dt class="sr-only">Publication</dt>
+      <dd>
+        <time :datetime="isoDate">{{ formattedDate }}</time>
+      </dd>
+    </dl>
   </NuxtLink>
 </template>
