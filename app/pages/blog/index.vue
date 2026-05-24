@@ -11,9 +11,11 @@ const publishedBySlug = computed(() => {
   return map
 })
 
-const allSlugs = computed(() => new Set(CHAPTERS_MANIFEST.map((c) => c.slug)))
-
 const TOTAL = CHAPTERS_MANIFEST.length
+const RENDER_COUNT = TOTAL * 2
+const VISIBLE_RAIL = 15
+const SAFE_LOWER = Math.floor((RENDER_COUNT - VISIBLE_RAIL) / 2)
+const SAFE_UPPER = SAFE_LOWER + TOTAL
 
 const carousel = CHAPTERS_MANIFEST.map((entry) => {
   const fallbackLede = entry.level === 'fundamentals'
@@ -21,19 +23,21 @@ const carousel = CHAPTERS_MANIFEST.map((entry) => {
     : entry.level === 'practice'
       ? 'Pratiques avancées — chapitre en cours d\'écriture.'
       : 'Collaboration & systèmes — chapitre en cours d\'écriture.'
-  const categoryLabel = CHAPTER_LEVELS[entry.level].label.toUpperCase()
   return {
     num: entry.num,
     slug: entry.slug,
     fullTitle: entry.fullTitle,
     fallbackLede,
-    categoryLabel,
+    categoryLabel: CHAPTER_LEVELS[entry.level].label.toUpperCase(),
     level: entry.level,
   }
 })
 
-const currentIndex = ref(0)
-const currentEntry = computed(() => carousel[currentIndex.value]!)
+const internalIndex = ref(TOTAL)
+const transitionEnabled = ref(true)
+
+const currentChapterIdx = computed(() => ((internalIndex.value % TOTAL) + TOTAL) % TOTAL)
+const currentEntry = computed(() => carousel[currentChapterIdx.value]!)
 const currentPublished = computed(() => publishedBySlug.value.get(currentEntry.value.slug) ?? null)
 
 const currentChapter = computed(() => {
@@ -51,15 +55,39 @@ const currentChapter = computed(() => {
   }
 })
 
+let resetTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleResetIfNeeded() {
+  if (resetTimer) clearTimeout(resetTimer)
+  resetTimer = setTimeout(() => {
+    if (internalIndex.value < SAFE_LOWER || internalIndex.value > SAFE_UPPER) {
+      transitionEnabled.value = false
+      const mod = ((internalIndex.value % TOTAL) + TOTAL) % TOTAL
+      internalIndex.value = TOTAL + mod
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          transitionEnabled.value = true
+        })
+      })
+    }
+  }, 460)
+}
+
 function nextCard() {
-  currentIndex.value = (currentIndex.value + 1) % TOTAL
+  internalIndex.value++
+  scheduleResetIfNeeded()
 }
 function prevCard() {
-  currentIndex.value = (currentIndex.value - 1 + TOTAL) % TOTAL
+  internalIndex.value--
+  scheduleResetIfNeeded()
 }
-function goTo(num: string) {
-  const idx = carousel.findIndex((c) => c.num === num)
-  if (idx >= 0) currentIndex.value = idx
+function goToNum(num: string) {
+  const idx = CHAPTERS_MANIFEST.findIndex((c) => c.num === num)
+  if (idx < 0) return
+  const offset = ((idx - currentChapterIdx.value) % TOTAL + TOTAL) % TOTAL
+  const shortOffset = offset > TOTAL / 2 ? offset - TOTAL : offset
+  internalIndex.value = internalIndex.value + shortOffset
+  scheduleResetIfNeeded()
 }
 
 if (import.meta.client) {
@@ -73,7 +101,7 @@ if (import.meta.client) {
     if (e.deltaY > 0 || e.deltaX > 0) nextCard()
     else prevCard()
     if (wheelTimer) clearTimeout(wheelTimer)
-    wheelTimer = setTimeout(() => { wheelLock = false }, 380)
+    wheelTimer = setTimeout(() => { wheelLock = false }, 420)
   }
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') {
@@ -81,9 +109,9 @@ if (import.meta.client) {
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
       e.preventDefault(); prevCard()
     } else if (e.key === 'Home') {
-      e.preventDefault(); currentIndex.value = 0
+      e.preventDefault(); goToNum('01')
     } else if (e.key === 'End') {
-      e.preventDefault(); currentIndex.value = TOTAL - 1
+      e.preventDefault(); goToNum(CHAPTERS_MANIFEST[TOTAL - 1]!.num)
     }
   }
   let touchY: number | null = null
@@ -112,6 +140,7 @@ if (import.meta.client) {
     window.removeEventListener('touchstart', onTouchStart)
     window.removeEventListener('touchend', onTouchEnd)
     if (wheelTimer) clearTimeout(wheelTimer)
+    if (resetTimer) clearTimeout(resetTimer)
   })
 }
 
@@ -147,9 +176,8 @@ useSeoMeta({
           class="absolute left-0 top-0"
         />
         <ChapterListSidebar
-          :current-num="currentChapter.num"
-          :published-slugs="allSlugs"
-          @select="goTo"
+          :internal-index="internalIndex"
+          :transition-enabled="transitionEnabled"
         />
       </aside>
 
@@ -168,7 +196,11 @@ useSeoMeta({
       </Transition>
     </div>
 
-    <ImageCardStack class="self-center shrink-0" />
+    <ChapterCarousel
+      :internal-index="internalIndex"
+      :transition-enabled="transitionEnabled"
+      class="self-center"
+    />
 
     <aside
       class="relative flex flex-col items-end justify-center w-[402px] self-stretch"

@@ -1,104 +1,84 @@
 <script setup lang="ts">
-import { CHAPTERS_MANIFEST, type ChapterEntry } from '~/utils/chapters'
+import { CHAPTERS_MANIFEST } from '~/utils/chapters'
 
-const { currentNum, publishedSlugs } = defineProps<{
-  currentNum: string
-  publishedSlugs: Set<string>
+const { internalIndex, transitionEnabled = true } = defineProps<{
+  internalIndex: number
+  transitionEnabled?: boolean
 }>()
 
-const emit = defineEmits<{ select: [num: string] }>()
+const ITEM_HEIGHT = 22
+const VISIBLE = 15
+const CONTAINER_HEIGHT = VISIBLE * ITEM_HEIGHT
 
-function cyclicOrder(active: string, list: ChapterEntry[]): ChapterEntry[] {
-  const total = list.length
-  const activeIdx = list.findIndex((c) => c.num === active)
-  if (activeIdx === -1) return list
-  const itemsBefore = Math.floor((total - 1) / 2)
-  const startIdx = (activeIdx - itemsBefore + total) % total
-  return Array.from({ length: total }, (_, i) => list[(startIdx + i) % total]!)
-}
+const TOTAL = CHAPTERS_MANIFEST.length
+const doubled = computed(() => [...CHAPTERS_MANIFEST, ...CHAPTERS_MANIFEST])
 
-const ordered = computed(() => cyclicOrder(currentNum, CHAPTERS_MANIFEST))
+const translateY = computed(
+  () => -(internalIndex * ITEM_HEIGHT + ITEM_HEIGHT / 2),
+)
 
-function handleClick(num: string, isPublished: boolean, e: MouseEvent) {
-  e.preventDefault()
-  if (!isPublished) return
-  emit('select', num)
+function isActive(i: number) {
+  return i === internalIndex
 }
 </script>
 
 <template>
   <nav
-    class="relative flex flex-col items-start gap-[6px] w-[22px]"
+    class="rail-wrapper relative w-[22px]"
+    :style="{ height: `${CONTAINER_HEIGHT}px` }"
     aria-label="Chapitres"
   >
+    <div
+      class="absolute left-0 w-full will-change-transform"
+      :style="{
+        top: '50%',
+        transform: `translateY(${translateY}px)`,
+        transition: transitionEnabled ? 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+      }"
+    >
+      <ul role="list" class="flex flex-col">
+        <li
+          v-for="(ch, i) in doubled"
+          :key="i"
+          class="flex items-center justify-center"
+          :style="{ height: `${ITEM_HEIGHT}px` }"
+        >
+          <span
+            class="font-mono leading-[16px] text-[11px] tracking-[0.44px]"
+            :style="{ transition: 'color 120ms ease-out, padding-left 200ms ease-out' }"
+            :class="isActive(i)
+              ? 'font-medium text-accent pl-[8px]'
+              : 'font-normal text-greyed'"
+            :aria-current="isActive(i) ? 'page' : undefined"
+          >
+            {{ ch.num }}
+          </span>
+        </li>
+      </ul>
+    </div>
     <span
       aria-hidden="true"
-      class="absolute left-0 top-1/2 w-[4px] border-t border-rule -translate-y-1/2"
+      class="absolute top-1/2 left-0 w-[4px] border-t border-rule -translate-y-1/2 pointer-events-none"
     />
-
-    <TransitionGroup
-      tag="ul"
-      name="rail"
-      role="list"
-      class="contents"
-    >
-      <li
-        v-for="ch in ordered"
-        :key="ch.num"
-        role="listitem"
-        class="flex justify-center w-full"
-      >
-        <NuxtLink
-          v-if="publishedSlugs.has(ch.slug)"
-          :to="`/blog/${ch.slug}`"
-          class="block font-mono leading-[16px] text-[11px] tracking-[0.44px] focus-visible:outline-none focus-visible:border-y focus-visible:border-primary"
-          :style="{ transition: 'color 120ms ease-out, padding-left 200ms ease-out' }"
-          :class="ch.num === currentNum
-            ? 'font-medium text-accent pl-[8px]'
-            : 'font-normal text-greyed hover:text-mid'"
-          :aria-current="ch.num === currentNum ? 'page' : undefined"
-          @click="handleClick(ch.num, true, $event)"
-        >
-          {{ ch.num }}
-        </NuxtLink>
-        <span
-          v-else
-          class="block font-mono font-normal leading-[16px] text-[11px] tracking-[0.44px] text-greyed opacity-40 cursor-not-allowed"
-          aria-disabled="true"
-          :title="`Chapitre ${ch.num} — à venir`"
-        >
-          {{ ch.num }}
-        </span>
-      </li>
-    </TransitionGroup>
   </nav>
 </template>
 
 <style scoped>
-.rail-move {
-  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.rail-enter-active,
-.rail-leave-active {
-  transition: opacity 180ms ease-out, transform 220ms ease-out;
-}
-.rail-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.rail-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-.rail-leave-active {
-  position: absolute;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rail-move,
-  .rail-enter-active,
-  .rail-leave-active {
-    transition: none;
-  }
+.rail-wrapper {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
 }
 </style>
