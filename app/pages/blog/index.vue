@@ -52,6 +52,7 @@ const currentEntry = computed(() => carousel[currentChapterIdx.value]!);
 const currentPublished = computed(
   () => publishedBySlug.value.get(currentEntry.value.slug) ?? null,
 );
+const currentIsPublished = computed(() => currentPublished.value !== null);
 
 const currentChapter = computed(() => {
   const e = currentEntry.value;
@@ -265,6 +266,7 @@ useHead({
           :lede="currentChapter.lede"
           :reading-time="currentChapter.readingTime"
           :category="currentChapter.category"
+          :published="currentIsPublished"
         />
       </Transition>
     </div>
@@ -283,14 +285,12 @@ useHead({
         <IntroBlock />
       </div>
 
-      <Transition name="card" mode="out-in">
-        <CtaReadMore
-          :key="currentChapter.num"
-          :slug="currentChapter.slug"
-          :tags="currentChapter.tags"
-          :publish-date="currentChapter.publishDate"
-        />
-      </Transition>
+      <CtaReadMore
+        :slug="currentChapter.slug"
+        :tags="currentChapter.tags"
+        :publish-date="currentChapter.publishDate"
+        :published="currentIsPublished"
+      />
     </aside>
 
     <div class="sr-only" role="status" aria-live="polite">

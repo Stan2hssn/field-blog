@@ -13,10 +13,9 @@ categories:
   - ia
 nextSlug: "03-variables-figma-et-design-tokens"
 tags:
-  - "Claude"
+  - "IA"
   - "MCP"
   - "Figma AI"
-  - "use_figma"
   - "Workflow"
 closing: "Tu as deux IA dans Figma. L'une vit dedans (Figma AI), l'autre y entre depuis l'extérieur (Claude MCP). L'une est rapide pour les opérations atomiques natives, l'autre lit ton repo et ton intention. Tu ne choisis pas. Tu utilises les deux selon le geste."
 sections:

@@ -98,7 +98,7 @@ function isActive(idx: number) {
 
 <style scoped>
 .rail-wrapper {
-  clip-path: inset(0 -200px 0 -200px);
+  overflow: visible;
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
