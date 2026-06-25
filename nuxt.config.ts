@@ -15,6 +15,7 @@ export default defineNuxtConfig({
     prerender: {
       crawlLinks: true,
       routes: ['/blog'],
+      ignore: ['/_dev'],
     },
   },
 
