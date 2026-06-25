@@ -1,60 +1,93 @@
 <script setup lang="ts">
 import { CHAPTERS_MANIFEST } from '~/utils/chapters'
 
-const { internalIndex, transitionEnabled = true } = defineProps<{
-  internalIndex: number
-  transitionEnabled?: boolean
+const {
+  scrollOffset,
+  velocity = 0,
+} = defineProps<{
+  scrollOffset: number
+  velocity?: number
 }>()
 
-const ITEM_HEIGHT = 22
-const VISIBLE = 15
-const CONTAINER_HEIGHT = VISIBLE * ITEM_HEIGHT
+const RAIL_WIDTH = 22
+const RAIL_ITEM_HEIGHT = 22
+const RAIL_VISIBLE_COUNT = 15
+const RAIL_HEIGHT = RAIL_VISIBLE_COUNT * RAIL_ITEM_HEIGHT
+const RAIL_RENDER_RANGE = 7
+
+const CURVE_AMOUNT = 60
+const CURVE_FADE_DISTANCE = 6
+const CURVE_VELOCITY_CAP = 1.5
 
 const TOTAL = CHAPTERS_MANIFEST.length
-const doubled = computed(() => [...CHAPTERS_MANIFEST, ...CHAPTERS_MANIFEST])
 
-const translateY = computed(
-  () => -(internalIndex * ITEM_HEIGHT + ITEM_HEIGHT / 2),
+function translateXFor(offset: number) {
+  const d = Math.abs(offset)
+  const weight = Math.max(0, 1 - d / CURVE_FADE_DISTANCE)
+  const v = Math.min(Math.abs(velocity), CURVE_VELOCITY_CAP)
+  return v * weight * CURVE_AMOUNT
+}
+
+const slots = computed(() => {
+  const result: Array<{
+    chapter: (typeof CHAPTERS_MANIFEST)[number]
+    chapterIdx: number
+    offset: number
+    key: string
+  }> = []
+  for (let i = 0; i < TOTAL; i++) {
+    const kBest = Math.round((scrollOffset - i) / TOTAL)
+    for (let dk = -1; dk <= 1; dk++) {
+      const k = kBest + dk
+      const offset = i + k * TOTAL - scrollOffset
+      if (Math.abs(offset) <= RAIL_RENDER_RANGE) {
+        result.push({
+          chapter: CHAPTERS_MANIFEST[i]!,
+          chapterIdx: i,
+          offset,
+          key: `${i}-${k}`,
+        })
+      }
+    }
+  }
+  return result
+})
+
+const activeIdx = computed(
+  () => ((Math.round(scrollOffset) % TOTAL) + TOTAL) % TOTAL,
 )
-
-function isActive(i: number) {
-  return i === internalIndex
+function isActive(idx: number) {
+  return idx === activeIdx.value
 }
 </script>
 
 <template>
   <nav
-    class="rail-wrapper relative w-[22px]"
-    :style="{ height: `${CONTAINER_HEIGHT}px` }"
+    class="rail-wrapper relative"
+    :style="{ width: `${RAIL_WIDTH}px`, height: `${RAIL_HEIGHT}px` }"
     aria-label="Chapitres"
   >
     <div
-      class="absolute left-0 w-full will-change-transform"
+      v-for="slot in slots"
+      :key="slot.key"
+      class="absolute top-1/2 left-0 flex items-center will-change-transform"
       :style="{
-        top: '50%',
-        transform: `translateY(${translateY}px)`,
-        transition: transitionEnabled ? 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+        width: `${RAIL_WIDTH}px`,
+        height: `${RAIL_ITEM_HEIGHT}px`,
+        transform: `translate(${translateXFor(slot.offset)}px, calc(-50% + ${slot.offset * RAIL_ITEM_HEIGHT}px))`,
       }"
     >
-      <ul role="list" class="flex flex-col">
-        <li
-          v-for="(ch, i) in doubled"
-          :key="i"
-          class="flex items-center justify-center"
-          :style="{ height: `${ITEM_HEIGHT}px` }"
-        >
-          <span
-            class="font-mono leading-[16px] text-[11px] tracking-[0.44px]"
-            :style="{ transition: 'color 120ms ease-out, padding-left 200ms ease-out' }"
-            :class="isActive(i)
-              ? 'font-medium text-accent pl-[8px]'
-              : 'font-normal text-greyed'"
-            :aria-current="isActive(i) ? 'page' : undefined"
-          >
-            {{ ch.num }}
-          </span>
-        </li>
-      </ul>
+      <span
+        class="font-mono leading-[16px] text-[11px] tracking-[0.44px] transition-[color,padding] duration-200 ease-out"
+        :class="
+          isActive(slot.chapterIdx)
+            ? 'font-medium text-accent pl-[8px]'
+            : 'font-normal text-greyed'
+        "
+        :aria-current="isActive(slot.chapterIdx) ? 'page' : undefined"
+      >
+        {{ slot.chapter.num }}
+      </span>
     </div>
     <span
       aria-hidden="true"
@@ -65,7 +98,7 @@ function isActive(i: number) {
 
 <style scoped>
 .rail-wrapper {
-  overflow: hidden;
+  clip-path: inset(0 -200px 0 -200px);
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,

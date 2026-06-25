@@ -6,6 +6,11 @@
 
 html,
 body {
+  width: 100%;
+}
+
+html.fullscreen-lock,
+body.fullscreen-lock {
   height: 100dvh;
   width: 100dvw;
   overflow: hidden;
@@ -27,11 +32,6 @@ body {
   line-height: 1.5;
 }
 
-body.page-scrollable,
-body:has(.page-scrollable) {
-  height: auto;
-  overflow: auto;
-}
 
 img,
 picture,

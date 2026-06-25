@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getChapterEntry } from '~/utils/chapters'
+
 const route = useRoute()
 const slug = computed(() => String(route.params.slug))
 
@@ -24,6 +26,33 @@ const { data: nextChapter } = await useAsyncData(
 
 const primaryCategory = computed(() => chapter.value?.categories[0] ?? 'guides')
 
+const nextManifest = computed(() => {
+  const nextSlug = chapter.value?.nextSlug
+  return nextSlug ? getChapterEntry(nextSlug) ?? null : null
+})
+
+const nextForAside = computed(() => {
+  if (nextChapter.value) {
+    return {
+      num: nextChapter.value.num,
+      slug: nextChapter.value.slug,
+      title: nextChapter.value.title,
+      lede: nextChapter.value.lede,
+      published: true,
+    }
+  }
+  if (nextManifest.value) {
+    return {
+      num: nextManifest.value.num,
+      slug: nextManifest.value.slug,
+      title: nextManifest.value.shortTitle,
+      lede: 'Chapitre à venir.',
+      published: false,
+    }
+  }
+  return null
+})
+
 useSeoMeta({
   title: () => `${chapter.value?.title ?? ''} — FIELD`,
   description: () => chapter.value?.lede,
@@ -31,6 +60,7 @@ useSeoMeta({
   ogDescription: () => chapter.value?.lede,
   ogType: 'article',
 })
+
 </script>
 
 <template>
@@ -40,7 +70,7 @@ useSeoMeta({
     Aller au contenu
   </a>
 
-  <main v-if="chapter" id="main-content" class="page-scrollable relative bg-bg min-h-screen p-[32px]">
+  <main v-if="chapter" id="main-content" class="relative bg-bg min-h-screen p-[32px]">
     <BrandLogo
       as="link"
       to="/blog"
@@ -60,6 +90,13 @@ useSeoMeta({
           :body="chapter.lede"
           class="mb-[96px]"
         />
+
+        <div class="flex flex-col gap-[12px] items-start w-full mb-[40px]">
+          <p class="font-sans font-semibold not-italic text-[12px] leading-[16px] tracking-[0.96px] text-primary uppercase whitespace-nowrap">
+            ARTICLE
+          </p>
+          <hr class="w-full h-px border-0 bg-rule m-0" aria-hidden="true" />
+        </div>
 
         <section
           v-for="(section, idx) in chapter.sections"
@@ -87,35 +124,17 @@ useSeoMeta({
         </section>
 
         <ClosingBlock :text="chapter.closing" class="mt-[176px] pt-[40px] border-t border-rule" />
-
-        <NextChapterCard
-          :next="nextChapter ? {
-            num: nextChapter.num,
-            slug: nextChapter.slug,
-            title: nextChapter.title,
-            lede: nextChapter.lede,
-            category: nextChapter.categories[0],
-            publishDate: nextChapter.publishDate,
-            readingTime: nextChapter.readingTime,
-          } : null"
-          class="mt-[80px]"
-        />
       </article>
 
       <div aria-hidden="true" />
 
-      <aside class="lg:sticky lg:top-[32px] lg:self-start">
+      <aside class="lg:mt-[384px] lg:sticky lg:top-[32px] lg:self-start">
         <AboutPanel
           :publish-date="chapter.publishDate"
           :reading-time="chapter.readingTime"
           :categories="chapter.categories"
           :sections="chapter.sections.map(s => ({ num: s.num, kicker: s.kicker }))"
-          :next="nextChapter ? {
-            num: nextChapter.num,
-            slug: nextChapter.slug,
-            title: nextChapter.title,
-            lede: nextChapter.lede,
-          } : null"
+          :next="nextForAside"
         />
       </aside>
     </div>
