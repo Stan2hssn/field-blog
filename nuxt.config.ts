@@ -37,6 +37,16 @@ export default defineNuxtConfig({
     { path: '~/components', pathPrefix: false },
   ],
 
+  alias: {
+    // Source unique des spices, partagee entre projets en attendant un module node.
+    '@spices/trails': '/Users/stan_husson/Dev/PV/_lib/trails',
+    '@spices/devtools': '/Users/stan_husson/Dev/PV/_lib/devtools',
+  },
+
+  vite: {
+    server: { fs: { allow: ['..', '/Users/stan_husson/Dev/PV/_lib'] } },
+  },
+
   css: [
     '~/assets/css/tokens.css',
     '~/assets/css/main.css',
