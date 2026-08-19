@@ -34,7 +34,13 @@ const carousel = CHAPTERS_MANIFEST.map((entry) => {
   };
 });
 
-const scrollOffset = ref(0);
+const INTRO_RUN_CHAPTERS = 4;
+const INTRO_RUN_DURATION = 1400;
+
+
+
+
+const scrollOffset = ref(-INTRO_RUN_CHAPTERS);
 const targetOffset = ref(0);
 const settledOffset = ref(0);
 
@@ -73,27 +79,89 @@ if (import.meta.client) {
   let rafId: number | null = null;
   let snapTimer: ReturnType<typeof setTimeout> | null = null;
   let snapPhase = false;
+  let snapCommitted = false;
   const WHEEL_SENSITIVITY = 1 / 400;
   const TOUCH_SENSITIVITY = 1 / 60;
   const DRAG_DAMPING = 0.22;
   const SNAP_DAMPING = 0.04;
+  const SETTLE_EPSILON = 0.02;
+  const REST_EPSILON = 0.0015;
+
+  let introRafId: number | null = null;
+
+  function armSnap(active: boolean) {
+    snapPhase = active;
+    snapCommitted = false;
+  }
+
+  function cancelIntroRun() {
+    if (introRafId === null) return;
+    cancelAnimationFrame(introRafId);
+    introRafId = null;
+    targetOffset.value = Math.round(scrollOffset.value);
+    settledOffset.value = targetOffset.value;
+    armSnap(true);
+    kick();
+  }
+
+  /**
+   * ChapterCarousel est un composant .client : il n'est pas dans le DOM au
+   * montage de la page. Lancer l'intro avant qu'il existe la joue dans le vide.
+   */
+  function whenCarouselReady(run: () => void, attempts = 60) {
+    if (document.querySelector(".carousel-wrapper") || attempts <= 0) {
+      run();
+      return;
+    }
+    requestAnimationFrame(() => whenCarouselReady(run, attempts - 1));
+  }
+
+  function runIntroCarousel() {
+    const from = scrollOffset.value;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / INTRO_RUN_DURATION);
+      const eased = 1 - Math.pow(1 - p, 4);
+      const prev = scrollOffset.value;
+      scrollOffset.value = from * (1 - eased);
+      const signed = scrollOffset.value - prev;
+      dynamicGap.value =
+        BASE_GAP + Math.min(Math.abs(signed) * VELOCITY_FACTOR, MAX_GAP_EXTRA);
+      scrollVelocity.value = signed;
+      if (p < 1) {
+        introRafId = requestAnimationFrame(tick);
+        return;
+      }
+      introRafId = null;
+      scrollOffset.value = 0;
+      targetOffset.value = 0;
+      settledOffset.value = 0;
+      dynamicGap.value = BASE_GAP;
+      scrollVelocity.value = 0;
+    };
+    introRafId = requestAnimationFrame(tick);
+  }
 
   function maybeWrap() {
     if (Math.abs(scrollOffset.value) > 500) {
       const mod = ((scrollOffset.value % TOTAL) + TOTAL) % TOTAL;
       scrollOffset.value = mod;
       targetOffset.value = mod;
-      settledOffset.value = Math.round(mod);
+      settledOffset.value =
+        ((settledOffset.value % TOTAL) + TOTAL) % TOTAL;
     }
   }
 
   function animate() {
     const diff = targetOffset.value - scrollOffset.value;
-    if (Math.abs(diff) < 0.0015) {
+    if (snapPhase && !snapCommitted && Math.abs(diff) < SETTLE_EPSILON) {
+      snapCommitted = true;
+      settledOffset.value = Math.round(targetOffset.value);
+    }
+    if (Math.abs(diff) < REST_EPSILON) {
       scrollOffset.value = targetOffset.value;
       dynamicGap.value = BASE_GAP;
       scrollVelocity.value = 0;
-      settledOffset.value = Math.round(scrollOffset.value);
       rafId = null;
       maybeWrap();
       return;
@@ -115,7 +183,7 @@ if (import.meta.client) {
 
   function snapToNearest() {
     targetOffset.value = Math.round(targetOffset.value);
-    snapPhase = true;
+    armSnap(true);
     kick();
   }
 
@@ -128,20 +196,22 @@ if (import.meta.client) {
     while (delta > TOTAL / 2) delta -= TOTAL;
     while (delta < -TOTAL / 2) delta += TOTAL;
     targetOffset.value = currentRound + delta;
-    snapPhase = true;
+    armSnap(true);
     kick();
   }
 
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
+    cancelIntroRun();
     if (snapTimer) clearTimeout(snapTimer);
-    snapPhase = false;
+    armSnap(false);
     targetOffset.value += e.deltaY * WHEEL_SENSITIVITY;
     kick();
     snapTimer = setTimeout(snapToNearest, 180);
   };
 
   const onKey = (e: KeyboardEvent) => {
+    cancelIntroRun();
     const base = Math.round(targetOffset.value);
     if (
       e.key === "ArrowDown" ||
@@ -150,7 +220,7 @@ if (import.meta.client) {
     ) {
       e.preventDefault();
       targetOffset.value = base + 1;
-      snapPhase = true;
+      armSnap(true);
       kick();
     } else if (
       e.key === "ArrowUp" ||
@@ -159,7 +229,7 @@ if (import.meta.client) {
     ) {
       e.preventDefault();
       targetOffset.value = base - 1;
-      snapPhase = true;
+      armSnap(true);
       kick();
     } else if (e.key === "Home") {
       e.preventDefault();
@@ -172,9 +242,10 @@ if (import.meta.client) {
 
   let lastTouchY: number | null = null;
   const onTouchStart = (e: TouchEvent) => {
+    cancelIntroRun();
     lastTouchY = e.touches[0]?.clientY ?? null;
     if (snapTimer) clearTimeout(snapTimer);
-    snapPhase = false;
+    armSnap(false);
   };
   const onTouchMove = (e: TouchEvent) => {
     if (lastTouchY === null) return;
@@ -195,6 +266,8 @@ if (import.meta.client) {
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: true });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    whenCarouselReady(runIntroCarousel);
   });
 
   onScopeDispose(() => {
@@ -205,6 +278,7 @@ if (import.meta.client) {
     window.removeEventListener("touchend", onTouchEnd);
     if (snapTimer) clearTimeout(snapTimer);
     if (rafId !== null) cancelAnimationFrame(rafId);
+    if (introRafId !== null) cancelAnimationFrame(introRafId);
   });
 }
 
@@ -227,6 +301,7 @@ useHead({
 <template>
   <main
     class="relative bg-bg w-[100dvw] h-[100dvh] overflow-hidden flex items-stretch gap-[128px] p-[32px] touch-none select-none"
+   
     role="region"
     aria-roledescription="carousel"
     aria-label="Chapitres FIELD®"
@@ -243,32 +318,26 @@ useHead({
         class="relative flex flex-col items-start justify-center self-stretch w-[22px]"
         aria-label="Chapitres"
       >
-        <BrandLogo
-          as="link"
-          to="/blog"
-          size="hero"
-          class="absolute left-0 top-0"
-        />
         <ChapterListSidebar
           :scroll-offset="scrollOffset"
           :velocity="scrollVelocity"
         />
       </aside>
 
-      <div class="flex-1 h-px bg-rule self-center" aria-hidden="true" />
+      <div
+        class="flex-1 h-px bg-rule self-center"
+        aria-hidden="true"
+      />
 
-      <Transition name="card" mode="out-in">
-        <FeaturedCard
-          :key="currentChapter.num"
-          :num="currentChapter.num"
-          :slug="currentChapter.slug"
-          :title="currentChapter.title"
-          :lede="currentChapter.lede"
-          :reading-time="currentChapter.readingTime"
-          :category="currentChapter.category"
-          :published="currentIsPublished"
-        />
-      </Transition>
+      <FeaturedCard
+        :num="currentChapter.num"
+        :slug="currentChapter.slug"
+        :title="currentChapter.title"
+        :lede="currentChapter.lede"
+        :reading-time="currentChapter.readingTime"
+        :category="currentChapter.category"
+        :published="currentIsPublished"
+      />
     </div>
 
     <ChapterCarousel
@@ -281,7 +350,9 @@ useHead({
       class="relative flex flex-col items-end justify-center w-[402px] self-stretch"
       aria-label="Intro et accès article"
     >
-      <div class="absolute left-0 top-0 w-full">
+      <div
+        class="absolute left-0 top-0 w-full"
+      >
         <IntroBlock />
       </div>
 
@@ -299,32 +370,3 @@ useHead({
     </div>
   </main>
 </template>
-
-<style scoped>
-.card-enter-active,
-.card-leave-active {
-  transition:
-    opacity 220ms ease-out,
-    transform 220ms ease-out;
-}
-.card-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.card-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card-enter-active,
-  .card-leave-active {
-    transition: opacity 80ms linear;
-    transform: none;
-  }
-  .card-enter-from,
-  .card-leave-to {
-    transform: none;
-  }
-}
-</style>

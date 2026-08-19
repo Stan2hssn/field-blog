@@ -13,8 +13,6 @@ const {
   published?: boolean
 }>()
 
-const NuxtLink = resolveComponent('NuxtLink')
-
 const formattedDate = computed(() => {
   const d = typeof publishDate === 'string' ? new Date(publishDate) : publishDate
   return d.toLocaleDateString('fr-FR', {
@@ -29,34 +27,45 @@ const tagsLine = computed(() => tags.map((t) => t.toUpperCase()).join(' · '))
 const isoDate = computed(() =>
   typeof publishDate === 'string' ? publishDate : publishDate.toISOString(),
 )
+
+const ctaLabel = computed(() => (published ? label : 'À VENIR'))
+const metaKey = computed(
+  () => `${tagsLine.value}|${published ? formattedDate.value : ''}`,
+)
 </script>
 
 <template>
-  <component
-    :is="published ? NuxtLink : 'div'"
-    :to="published ? `/blog/${slug}` : undefined"
-    class="group flex flex-col gap-[16px] w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-    :aria-label="published ? `Lire l'article : ${tagsLine} — ${formattedDate}` : `À venir : ${tagsLine}`"
-  >
-    <p
-      class="inline-flex items-center gap-[6px] font-mono font-medium text-[11px] leading-[16px] tracking-kicker transition-[text-decoration] duration-base ease-out underline-offset-[4px]"
-      :class="published ? 'text-accent group-hover:underline' : 'text-greyed'"
-    >
-      <span>{{ published ? label : 'À VENIR' }}</span>
-      <span
-        v-if="published"
-        aria-hidden="true"
-        class="inline-block transition-transform duration-base ease-out group-hover:translate-x-[2px]"
-      >→</span>
-    </p>
+  <div class="group relative flex flex-col gap-[16px] w-full">
+    <NuxtLink
+      v-if="published"
+      :to="`/blog/${slug}`"
+      class="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      :aria-label="`Lire l'article : ${tagsLine} — ${formattedDate}`"
+    />
+
+    <Transition name="fade-up" mode="out-in">
+      <p
+        :key="ctaLabel"
+        class="inline-flex items-center gap-[6px] font-mono font-medium text-[11px] leading-[16px] tracking-kicker"
+        :class="published ? 'text-accent' : 'text-greyed'"      >
+        <span
+          class="transition-[text-decoration] duration-base ease-out underline-offset-[4px]"
+          :class="published ? 'group-hover:underline' : ''"
+        >{{ ctaLabel }}</span>
+        <span
+          v-if="published"
+          aria-hidden="true"
+          class="inline-block transition-transform duration-base ease-out group-hover:translate-x-[2px]"
+        >→</span>
+      </p>
+    </Transition>
 
     <div class="h-px w-full bg-rule" aria-hidden="true" />
 
-    <Transition name="meta" mode="out-in">
+    <Transition name="fade-down" mode="out-in">
       <dl
-        :key="slug"
-        class="flex h-[14px] items-center gap-[24px] w-full font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap"
-      >
+        :key="metaKey"
+        class="flex h-[14px] items-center gap-[24px] w-full font-mono font-medium text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap"      >
         <dt class="sr-only">Sujets</dt>
         <dd>{{ tagsLine }}</dd>
 
@@ -70,34 +79,5 @@ const isoDate = computed(() =>
         </template>
       </dl>
     </Transition>
-  </component>
+  </div>
 </template>
-
-<style scoped>
-.meta-enter-active,
-.meta-leave-active {
-  transition:
-    opacity 220ms ease-out,
-    transform 220ms ease-out;
-}
-.meta-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
-}
-.meta-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meta-enter-active,
-  .meta-leave-active {
-    transition: opacity 80ms linear;
-    transform: none;
-  }
-  .meta-enter-from,
-  .meta-leave-to {
-    transform: none;
-  }
-}
-</style>
