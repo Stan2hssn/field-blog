@@ -13,7 +13,8 @@ import {
   shortcutsPanel,
   codePanel,
 } from '@spices/devtools'
-import type { WaterfallLane, WaterfallRecord } from '@spices/devtools'
+import type { PhaseCapture, WaterfallLane, WaterfallRecord } from '@spices/devtools'
+import type { Router } from 'vue-router'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
 import { useTrails } from '~/composables/useTrails'
@@ -65,6 +66,43 @@ function waterfall(): WaterfallRecord[] {
   return kept
 }
 
+/** Sans navigation d'ici la, l'enregistrement rend la main plutot que d'attendre. */
+const CAPTURE_TIMEOUT = 15_000
+/** Laisse le paint et les dernieres ressources entrer dans les mesures. */
+const SETTLE = 600
+
+let captureCount = 0
+
+/**
+ * Arme l'enregistrement de la PROCHAINE navigation : c'est le geste que la
+ * maquette attend du bouton Rec. On lit apres coup ce que le navigateur et le
+ * bus ont mesure — rien n'est simule.
+ */
+function record(router: Router): Promise<PhaseCapture> {
+  return new Promise((resolve, reject) => {
+    let stop: (() => void) | null = null
+    const timer = setTimeout(() => {
+      stop?.()
+      reject(new Error('aucune navigation en 15 s'))
+    }, CAPTURE_TIMEOUT)
+
+    stop = router.afterEach(() => {
+      clearTimeout(timer)
+      stop?.()
+      setTimeout(() => {
+        captureCount++
+        resolve({
+          id: `capture-${captureCount}`,
+          label: `capture #${captureCount} · ${transitionDebug.route}`,
+          // Copie : le bus sera vide par la navigation suivante.
+          feed: { route: transitionDebug.route, marks: [...transitionDebug.marks] },
+          records: waterfall(),
+        })
+      }, SETTLE)
+    })
+  })
+}
+
 /**
  * Montage de la spice devtools. Dev uniquement : elle lit des instances Vue et
  * type.__file, qui n'existent pas dans le build.
@@ -75,6 +113,8 @@ function waterfall(): WaterfallRecord[] {
  */
 export default defineNuxtPlugin(() => {
   if (!import.meta.dev) return
+
+  const router = useRouter()
 
   useTrails('page-fade', (tl) => {
     tl.fromTo('page', { opacity: 0 }, { opacity: 1 }, { duration: PAGE_FADE / 1000, ease: 'outCubic' })
@@ -104,6 +144,7 @@ export default defineNuxtPlugin(() => {
         subscribe: (cb) => watch(() => transitionDebug, cb, { deep: true }),
         expected: EXPECTED,
         waterfall,
+        record: () => record(router),
       }),
       timelinePanel({
         ids: TIMELINES,
