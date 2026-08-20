@@ -40,6 +40,9 @@ export default defineNuxtPlugin(() => {
   })
 
   mountDevtools({
+    // Nomme le projet : sans lui la cle retomberait sur le hostname, partage
+    // par tous les projets servis depuis localhost.
+    namespace: 'field-blog',
     adapters: [vueAdapter],
     // Ni diffPanel ni glPanel ici : ce projet n'a ni store a diffuser ni scene
     // three. Un panneau sans source ne se declare pas, il ne s'affiche pas vide.
