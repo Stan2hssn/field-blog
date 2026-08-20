@@ -5,7 +5,15 @@ import {
   timelinePanel,
   tokensPanel,
   phasesPanel,
+  layersPanel,
+  a11yPanel,
+  consolePanel,
+  netPanel,
+  settingsPanel,
+  shortcutsPanel,
+  codePanel,
 } from '@spices/devtools'
+import type { WaterfallLane, WaterfallRecord } from '@spices/devtools'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
 import { useTrails } from '~/composables/useTrails'
@@ -17,6 +25,45 @@ const EXPECTED: Record<string, number> = {
 }
 
 const TIMELINES = ['page-fade']
+
+/** initiatorType du navigateur vers les lanes du waterfall. */
+const LANES: Record<string, WaterfallLane> = {
+  fetch: 'reseau',
+  xmlhttprequest: 'reseau',
+  beacon: 'reseau',
+  script: 'script',
+  css: 'style',
+  link: 'style',
+}
+
+/** Au-dela, le waterfall devient illisible : en dev, une page charge des centaines
+ *  de modules. On garde les plus longs, ce sont eux qui expliquent le temps. */
+const MAX_RECORDS = 40
+
+/**
+ * Le waterfall se lit dans l'API Performance, pas dans le bus : c'est le
+ * navigateur qui mesure. Pas de lane `layout`, aucune API ne l'expose.
+ */
+function waterfall(): WaterfallRecord[] {
+  const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+  const records: WaterfallRecord[] = []
+  for (const entry of resources) {
+    const lane = LANES[entry.initiatorType]
+    if (!lane || entry.duration <= 0) continue
+    records.push({
+      lane,
+      label: entry.name.split('/').pop() ?? entry.name,
+      start: entry.startTime,
+      duration: entry.duration,
+    })
+  }
+  records.sort((a, b) => b.duration - a.duration)
+  const kept = records.slice(0, MAX_RECORDS)
+  for (const paint of performance.getEntriesByType('paint')) {
+    kept.push({ lane: 'paint', label: paint.name, start: paint.startTime, duration: 0 })
+  }
+  return kept
+}
 
 /**
  * Montage de la spice devtools. Dev uniquement : elle lit des instances Vue et
@@ -34,9 +81,19 @@ export default defineNuxtPlugin(() => {
   })
 
   mountDevtools({
+    // Nomme le projet : sans lui la cle retomberait sur le hostname, partage
+    // par tous les projets servis depuis localhost.
+    namespace: 'field-blog',
     adapters: [vueAdapter],
+    // Ni diffPanel ni glPanel ici : ce projet n'a ni store a diffuser ni scene
+    // three. Un panneau sans source ne se declare pas, il ne s'affiche pas vide.
+    addons: [a11yPanel, consolePanel(), netPanel()],
     panels: [
       inspectorPanel,
+      layersPanel,
+      // Le graphe vient du plugin Vite dev-only : sans lui, l'onglet dirait
+      // simplement qu'aucun fournisseur n'est branche.
+      codePanel({ graph: () => fetch('/__sonde/module-graph').then((r) => r.json()) }),
       tokensPanel({ accept: (name) => !name.startsWith('--tw-') }),
       phasesPanel({
         read: () => ({ route: transitionDebug.route, marks: transitionDebug.marks }),
@@ -46,6 +103,7 @@ export default defineNuxtPlugin(() => {
         // ne declencherait aucun watcher.
         subscribe: (cb) => watch(() => transitionDebug, cb, { deep: true }),
         expected: EXPECTED,
+        waterfall,
       }),
       timelinePanel({
         ids: TIMELINES,
@@ -53,6 +111,16 @@ export default defineNuxtPlugin(() => {
         easeNames: EASE_NAMES,
         sampleEase: applyEase,
       }),
+      // Epingles en bas du rail : la liste d'add-ons vient du montage, pas d'un
+      // tableau en dur, sinon les interrupteurs mentiraient au premier ajout.
+      settingsPanel({
+        addons: [
+          { id: 'a11y', label: 'A11y' },
+          { id: 'console', label: 'Console' },
+          { id: 'net', label: 'Reseau' },
+        ],
+      }),
+      shortcutsPanel,
     ],
   })
 })
