@@ -127,7 +127,17 @@ export default defineNuxtPlugin(() => {
     adapters: [vueAdapter],
     // Ni diffPanel ni glPanel ici : ce projet n'a ni store a diffuser ni scene
     // three. Un panneau sans source ne se declare pas, il ne s'affiche pas vide.
-    addons: [a11yPanel, consolePanel(), netPanel()],
+    addons: [
+      timelinePanel({
+        ids: TIMELINES,
+        loadTheatre: (id) => useTrails(id),
+        easeNames: EASE_NAMES,
+        sampleEase: applyEase,
+      }),
+      a11yPanel,
+      consolePanel(),
+      netPanel(),
+    ],
     panels: [
       inspectorPanel,
       layersPanel,
@@ -146,16 +156,11 @@ export default defineNuxtPlugin(() => {
         waterfall,
         record: () => record(router),
       }),
-      timelinePanel({
-        ids: TIMELINES,
-        loadTheatre: (id) => useTrails(id),
-        easeNames: EASE_NAMES,
-        sampleEase: applyEase,
-      }),
       // Epingles en bas du rail : la liste d'add-ons vient du montage, pas d'un
       // tableau en dur, sinon les interrupteurs mentiraient au premier ajout.
       settingsPanel({
         addons: [
+          { id: 'timeline', label: 'Timeline' },
           { id: 'a11y', label: 'A11y' },
           { id: 'console', label: 'Console' },
           { id: 'net', label: 'Reseau' },
