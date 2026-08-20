@@ -12,12 +12,16 @@ import {
   settingsPanel,
   shortcutsPanel,
   codePanel,
+  glPanel,
+  threeAdapter,
 } from '@spices/devtools'
 import type { PhaseCapture, WaterfallLane, WaterfallRecord } from '@spices/devtools'
 import type { Router } from 'vue-router'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
+import { REVISION } from 'three'
 import { useTrails } from '~/composables/useTrails'
+import { useGlScene } from '~/composables/useGlScene'
 import { PAGE_FADE, transitionDebug } from '~/utils/transitions'
 
 /** Duree attendue par phase, en ms : c'est elle qui rend l'ecart lisible. */
@@ -125,9 +129,18 @@ export default defineNuxtPlugin(() => {
     // par tous les projets servis depuis localhost.
     namespace: 'field-blog',
     adapters: [vueAdapter],
-    // Ni diffPanel ni glPanel ici : ce projet n'a ni store a diffuser ni scene
-    // three. Un panneau sans source ne se declare pas, il ne s'affiche pas vide.
+    // Pas de diffPanel ici : ce projet n'a pas de store a diffuser. Un panneau
+    // sans source ne se declare pas, il ne s'affiche pas vide.
     addons: [
+      // La scene du rail de chapitres, publiee par ChapterScene. Des lecteurs et
+      // non des references : elle meurt et renait a chaque changement de route.
+      glPanel({
+        adapter: threeAdapter({
+          renderer: () => useGlScene().read()?.renderer ?? null,
+          scene: () => useGlScene().read()?.scene ?? null,
+          name: 'three ' + REVISION,
+        }),
+      }),
       timelinePanel({
         ids: TIMELINES,
         loadTheatre: (id) => useTrails(id),

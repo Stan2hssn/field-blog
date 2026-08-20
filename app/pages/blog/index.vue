@@ -105,11 +105,11 @@ if (import.meta.client) {
   }
 
   /**
-   * ChapterCarousel est un composant .client : il n'est pas dans le DOM au
+   * ChapterScene est un composant .client : il n'est pas dans le DOM au
    * montage de la page. Lancer l'intro avant qu'il existe la joue dans le vide.
    */
   function whenCarouselReady(run: () => void, attempts = 60) {
-    if (document.querySelector(".carousel-wrapper") || attempts <= 0) {
+    if (document.querySelector(".scene-wrapper") || attempts <= 0) {
       run();
       return;
     }
@@ -340,7 +340,8 @@ useHead({
       />
     </div>
 
-    <ChapterCarousel
+    <!-- Le visuel du rail est une scene Three ; la navigation reste en DOM. -->
+    <ChapterScene
       :scroll-offset="scrollOffset"
       :gap="dynamicGap"
       class="self-center"
