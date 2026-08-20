@@ -20,6 +20,7 @@ import {
 } from '~/utils/carousel-layout'
 import { PIXEL_FOV, pixelPerfectZ, placeOnScreen } from '~/utils/dom-align'
 import { useGlScene } from '~/composables/useGlScene'
+import { applyEase } from '@spices/trails'
 
 const { scrollOffset, gap = DEFAULT_GAP } = defineProps<{
   scrollOffset: number
@@ -29,6 +30,16 @@ const { scrollOffset, gap = DEFAULT_GAP } = defineProps<{
 const ACTIVE_OPACITY = 1
 const IDLE_OPACITY = 0.5
 const CARD_COLOR = '#f7f7f5'
+
+/**
+ * Rapprochement de la carte survolee, en unites monde donc en pixels. La camera
+ * est perspective : avancer grossit, c'est le grossissement du survol — inutile
+ * d'y ajouter une echelle, qui ferait deux fois le meme effet.
+ */
+const HOVER_LIFT = 24
+/** Aligne sur --dur-base. */
+const HOVER_MS = 200
+const HOVER_EASE = 'outCubic'
 
 // useTemplateRef et non une ref homonyme : c'est la convention du repo
 // (ImageCardStack.client.vue:41), et en Vue 3.5 la liaison implicite d'une
@@ -84,7 +95,15 @@ function planeFor(key: string, index: number): Mesh<PlaneGeometry, MeshStandardM
  * identite qui survit au defilement vaut mieux qu'une poignee d'octets.
  */
 function hideOutOfRail(live: Set<string>) {
-  for (const [key, mesh] of planes) mesh.visible = live.has(key)
+  for (const [key, mesh] of planes) {
+    mesh.visible = live.has(key)
+    // Le survol se perd avec le creneau : le pointeur ne quitte pas une carte
+    // que le defilement lui retire, pointerleave ne partirait donc pas.
+    if (!mesh.visible) {
+      hoverAt.delete(key)
+      if (hovered === key) hovered = null
+    }
+  }
 }
 
 /** Liberation reelle, au demontage seulement. */
@@ -94,6 +113,53 @@ function disposePlanes() {
     mesh.material.dispose()
   }
   planes.clear()
+}
+
+/** Chapitre survole, et avancement 0..1 de chaque plane vers son etat de survol. */
+let hovered: string | null = null
+const hoverAt = new Map<string, number>()
+let raf = 0
+let lastFrame = 0
+
+const snapHover = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/**
+ * Fait avancer les survols puis redessine. La boucle s'arrete des que tout est
+ * arrive : le rail ne tourne pas en continu, il ne s'anime que pendant le
+ * fondu du survol.
+ */
+function step(now: number) {
+  const dt = lastFrame ? now - lastFrame : 0
+  lastFrame = now
+  let moving = false
+
+  for (const [key, at] of hoverAt) {
+    const goal = key === hovered ? 1 : 0
+    if (at === goal) continue
+    const delta = dt / HOVER_MS
+    const next = goal > at ? Math.min(goal, at + delta) : Math.max(goal, at - delta)
+    hoverAt.set(key, next)
+    if (next !== goal) moving = true
+  }
+
+  align()
+  raf = moving ? requestAnimationFrame(step) : 0
+  if (!moving) lastFrame = 0
+}
+
+function setHover(key: string | null) {
+  hovered = key
+  if (key !== null && !hoverAt.has(key)) hoverAt.set(key, 0)
+
+  if (snapHover()) {
+    for (const known of hoverAt.keys()) hoverAt.set(known, known === key ? 1 : 0)
+    align()
+    return
+  }
+  if (!raf) {
+    lastFrame = 0
+    raf = requestAnimationFrame(step)
+  }
 }
 
 /**
@@ -109,12 +175,17 @@ function align() {
   for (const slot of slots.value) {
     const card = cards.get(slot.key)
     if (!card) continue
-    live.add(String(slot.chapterIdx))
+    const key = String(slot.chapterIdx)
+    live.add(key)
     const placed = placeOnScreen(card.getBoundingClientRect(), view)
-    const mesh = planeFor(String(slot.chapterIdx), slot.chapterIdx)
-    mesh.position.set(placed.x, placed.y, 0)
+    const mesh = planeFor(key, slot.chapterIdx)
+    const lift = applyEase(HOVER_EASE, hoverAt.get(key) ?? 0)
+    mesh.position.set(placed.x, placed.y, HOVER_LIFT * lift)
     mesh.scale.set(placed.width, placed.height, 1)
-    mesh.material.opacity = slot.chapterIdx === active.value ? ACTIVE_OPACITY : IDLE_OPACITY
+    // Le survol ramene vers la pleine opacite : sur la carte active, deja a 1,
+    // seul le rapprochement se voit.
+    const base = slot.chapterIdx === active.value ? ACTIVE_OPACITY : IDLE_OPACITY
+    mesh.material.opacity = base + (ACTIVE_OPACITY - base) * lift
   }
 
   hideOutOfRail(live)
@@ -189,6 +260,10 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  if (raf) cancelAnimationFrame(raf)
+  raf = 0
+  hoverAt.clear()
+  hovered = null
   observer?.disconnect()
   observer = null
   useGlScene().publish(null)
@@ -234,6 +309,10 @@ onBeforeUnmount(() => {
       }"
       :aria-label="`Chapitre ${slot.chapter.num} — ${slot.chapter.fullTitle}`"
       :tabindex="slot.chapterIdx === active ? 0 : -1"
+      @pointerenter="setHover(String(slot.chapterIdx))"
+      @pointerleave="setHover(null)"
+      @focus="setHover(String(slot.chapterIdx))"
+      @blur="setHover(null)"
     >
       <span
         class="font-mono uppercase tracking-kicker text-greyed/50 text-[12px]"
