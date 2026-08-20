@@ -31,6 +31,7 @@ const EXPECTED: Record<string, number> = {
 
 const TIMELINES = ['page-fade']
 
+
 /** initiatorType du navigateur vers les lanes du waterfall. */
 const LANES: Record<string, WaterfallLane> = {
   fetch: 'reseau',
@@ -139,6 +140,7 @@ export default defineNuxtPlugin(() => {
           renderer: () => useGlScene().read()?.renderer ?? null,
           scene: () => useGlScene().read()?.scene ?? null,
           name: 'three ' + REVISION,
+          invalidate: () => useGlScene().read()?.render(),
         }),
       }),
       timelinePanel({

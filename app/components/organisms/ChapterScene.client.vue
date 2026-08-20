@@ -52,6 +52,13 @@ const planes = new Map<string, Mesh<PlaneGeometry, MeshStandardMaterial>>()
 /** WebGL peut manquer : contexte refuse, GPU bloque, navigateur sans support. */
 const failed = ref(false)
 
+/**
+ * Les planes sont indexes par CHAPITRE et non par creneau. Un creneau porte le
+ * numero de cycle, qui change a chaque tour de rail : les indexer dessus ferait
+ * creer et detruire un Mesh en continu pendant le defilement, et surtout
+ * changerait son uuid sans arret — la sonde perdrait le noeud qu'elle edite
+ * entre la selection et l'ecriture.
+ */
 function planeFor(key: string, index: number): Mesh<PlaneGeometry, MeshStandardMaterial> {
   const known = planes.get(key)
   if (known) return known
@@ -70,14 +77,23 @@ function planeFor(key: string, index: number): Mesh<PlaneGeometry, MeshStandardM
   return mesh
 }
 
-/** Les planes dont la carte a quitte le rail sont liberes. */
-function dropStale(live: Set<string>) {
-  for (const [key, mesh] of planes) {
-    if (live.has(key)) continue
+/**
+ * Les planes hors du rail sont MASQUES, jamais detruits. Le rail ne compte
+ * qu'une poignee de chapitres, et un objet recree perd tout ce qu'on lui a fait
+ * — une edition depuis la sonde, mais aussi tout tween pose de l'exterieur. Une
+ * identite qui survit au defilement vaut mieux qu'une poignee d'octets.
+ */
+function hideOutOfRail(live: Set<string>) {
+  for (const [key, mesh] of planes) mesh.visible = live.has(key)
+}
+
+/** Liberation reelle, au demontage seulement. */
+function disposePlanes() {
+  for (const [, mesh] of planes) {
     scene?.remove(mesh)
     mesh.material.dispose()
-    planes.delete(key)
   }
+  planes.clear()
 }
 
 /**
@@ -93,15 +109,15 @@ function align() {
   for (const slot of slots.value) {
     const card = cards.get(slot.key)
     if (!card) continue
-    live.add(slot.key)
+    live.add(String(slot.chapterIdx))
     const placed = placeOnScreen(card.getBoundingClientRect(), view)
-    const mesh = planeFor(slot.key, slot.chapterIdx)
+    const mesh = planeFor(String(slot.chapterIdx), slot.chapterIdx)
     mesh.position.set(placed.x, placed.y, 0)
     mesh.scale.set(placed.width, placed.height, 1)
     mesh.material.opacity = slot.chapterIdx === active.value ? ACTIVE_OPACITY : IDLE_OPACITY
   }
 
-  dropStale(live)
+  hideOutOfRail(live)
   renderer.render(scene, camera)
 }
 
@@ -158,7 +174,7 @@ onMounted(async () => {
   observer.observe(document.documentElement)
 
   // Publiee pour l'onglet Rendu 3D de la sonde.
-  useGlScene().publish({ renderer, scene, camera })
+  useGlScene().publish({ renderer, scene, camera, render: () => renderer?.render(scene!, camera!) })
 })
 
 // Le rendu suit le defilement : pas de boucle permanente, le rail ne bouge que
@@ -176,7 +192,7 @@ onBeforeUnmount(() => {
   observer?.disconnect()
   observer = null
   useGlScene().publish(null)
-  dropStale(new Set())
+  disposePlanes()
   geometry?.dispose()
   geometry = null
   renderer?.dispose()

@@ -4,6 +4,12 @@ export interface GlSceneHandle {
   renderer: WebGLRenderer
   scene: Scene
   camera: PerspectiveCamera
+  /**
+   * Redessine une image. Le rail ne rend que sur defilement : sans ce point
+   * d'entree, une modification faite depuis la sonde ne s'afficherait qu'au
+   * prochain geste de l'utilisateur.
+   */
+  render: () => void
 }
 
 /**
