@@ -9,6 +9,7 @@ import {
   a11yPanel,
   consolePanel,
   netPanel,
+  diffPanel,
   settingsPanel,
   shortcutsPanel,
   codePanel,
@@ -30,6 +31,43 @@ const EXPECTED: Record<string, number> = {
 }
 
 const TIMELINES = ['page-fade']
+
+/** Ordre d'affichage des domaines du State Δ ; le reste suit par ordre alpha. */
+const DIFF_GROUPS = ['route', 'transition', 'scene']
+
+/** Deux decimales : la position d'une camera bouge en flottants, pas au pixel. */
+const round = (n: number) => Math.round(n * 100) / 100
+
+/**
+ * Ce projet n'a pas de store — son etat vit dans le routeur, le bus de
+ * transitions et la scene du rail. Le snapshot les rassemble sous trois
+ * domaines : c'est ce que le panneau compare avant/apres chaque interaction.
+ * Lecture ponctuelle et copies plates : le panneau doit pouvoir relire le
+ * snapshot d'avant apres que la source a mute en place.
+ */
+function storeSnapshot(router: Router): Record<string, unknown> {
+  const route = router.currentRoute.value
+  const gl = useGlScene().read()
+  return {
+    route: {
+      path: route.path,
+      name: String(route.name ?? ''),
+      params: { ...route.params },
+    },
+    transition: {
+      route: transitionDebug.route,
+      marks: transitionDebug.marks.map((mark) => ({ phase: mark.phase, at: round(mark.at) })),
+    },
+    scene: gl
+      ? {
+          montee: true,
+          objets: gl.scene.children.length,
+          visibles: gl.scene.children.filter((child) => child.visible).length,
+          cameraZ: round(gl.camera.position.z),
+        }
+      : { montee: false },
+  }
+}
 
 
 /** initiatorType du navigateur vers les lanes du waterfall. */
@@ -130,8 +168,6 @@ export default defineNuxtPlugin(() => {
     // par tous les projets servis depuis localhost.
     namespace: 'field-blog',
     adapters: [vueAdapter],
-    // Pas de diffPanel ici : ce projet n'a pas de store a diffuser. Un panneau
-    // sans source ne se declare pas, il ne s'affiche pas vide.
     addons: [
       // La scene du rail de chapitres, publiee par ChapterScene. Des lecteurs et
       // non des references : elle meurt et renait a chaque changement de route.
@@ -152,6 +188,7 @@ export default defineNuxtPlugin(() => {
       a11yPanel,
       consolePanel(),
       netPanel(),
+      diffPanel({ snapshot: () => storeSnapshot(router), groups: DIFF_GROUPS }),
     ],
     panels: [
       inspectorPanel,
@@ -171,16 +208,9 @@ export default defineNuxtPlugin(() => {
         waterfall,
         record: () => record(router),
       }),
-      // Epingles en bas du rail : la liste d'add-ons vient du montage, pas d'un
-      // tableau en dur, sinon les interrupteurs mentiraient au premier ajout.
-      settingsPanel({
-        addons: [
-          { id: 'timeline', label: 'Timeline' },
-          { id: 'a11y', label: 'A11y' },
-          { id: 'console', label: 'Console' },
-          { id: 'net', label: 'Reseau' },
-        ],
-      }),
+      // Epingle en bas du rail. Sans liste : les interrupteurs sont ceux des
+      // add-ons reellement montes ci-dessus, ils ne peuvent pas en oublier un.
+      settingsPanel({}),
       shortcutsPanel,
     ],
   })
