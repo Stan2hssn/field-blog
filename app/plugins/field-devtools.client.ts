@@ -9,6 +9,8 @@ import {
   a11yPanel,
   consolePanel,
   netPanel,
+  settingsPanel,
+  shortcutsPanel,
 } from '@spices/devtools'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
@@ -61,6 +63,16 @@ export default defineNuxtPlugin(() => {
         easeNames: EASE_NAMES,
         sampleEase: applyEase,
       }),
+      // Epingles en bas du rail : la liste d'add-ons vient du montage, pas d'un
+      // tableau en dur, sinon les interrupteurs mentiraient au premier ajout.
+      settingsPanel({
+        addons: [
+          { id: 'a11y', label: 'A11y' },
+          { id: 'console', label: 'Console' },
+          { id: 'net', label: 'Reseau' },
+        ],
+      }),
+      shortcutsPanel,
     ],
   })
 })
