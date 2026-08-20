@@ -11,6 +11,7 @@ import {
   netPanel,
   settingsPanel,
   shortcutsPanel,
+  codePanel,
 } from '@spices/devtools'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
@@ -50,6 +51,9 @@ export default defineNuxtPlugin(() => {
     panels: [
       inspectorPanel,
       layersPanel,
+      // Le graphe vient du plugin Vite dev-only : sans lui, l'onglet dirait
+      // simplement qu'aucun fournisseur n'est branche.
+      codePanel({ graph: () => fetch('/__sonde/module-graph').then((r) => r.json()) }),
       tokensPanel({ accept: (name) => !name.startsWith('--tw-') }),
       phasesPanel({
         read: () => ({ route: transitionDebug.route, marks: transitionDebug.marks }),

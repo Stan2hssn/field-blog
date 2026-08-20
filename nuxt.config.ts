@@ -1,3 +1,7 @@
+// Chemin absolu et non alias : nuxt.config est charge avant que les alias de
+// l'app existent. Le plugin est en apply:'serve', il n'atteint aucun build.
+import { sondeModuleGraph } from '/Users/stan_husson/Dev/PV/_lib/devtools/vite/index.ts'
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-05-21',
 
@@ -40,10 +44,12 @@ export default defineNuxtConfig({
   alias: {
     // Source unique des spices, partagee entre projets en attendant un module node.
     '@spices/trails': '/Users/stan_husson/Dev/PV/_lib/trails',
+    '@spices/devtools/vite': '/Users/stan_husson/Dev/PV/_lib/devtools/vite/index.ts',
     '@spices/devtools': '/Users/stan_husson/Dev/PV/_lib/devtools',
   },
 
   vite: {
+    plugins: [sondeModuleGraph()],
     server: { fs: { allow: ['..', '/Users/stan_husson/Dev/PV/_lib'] } },
   },
 
