@@ -5,6 +5,10 @@ import {
   timelinePanel,
   tokensPanel,
   phasesPanel,
+  layersPanel,
+  a11yPanel,
+  consolePanel,
+  netPanel,
 } from '@spices/devtools'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
@@ -35,8 +39,12 @@ export default defineNuxtPlugin(() => {
 
   mountDevtools({
     adapters: [vueAdapter],
+    // Ni diffPanel ni glPanel ici : ce projet n'a ni store a diffuser ni scene
+    // three. Un panneau sans source ne se declare pas, il ne s'affiche pas vide.
+    addons: [a11yPanel, consolePanel(), netPanel()],
     panels: [
       inspectorPanel,
+      layersPanel,
       tokensPanel({ accept: (name) => !name.startsWith('--tw-') }),
       phasesPanel({
         read: () => ({ route: transitionDebug.route, marks: transitionDebug.marks }),
