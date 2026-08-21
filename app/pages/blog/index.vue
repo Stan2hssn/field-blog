@@ -2,6 +2,8 @@
 import { CHAPTERS_MANIFEST, CHAPTER_LEVELS } from "~/utils/chapters";
 import { activeIndex } from "~/utils/carousel-layout";
 import { useRailState } from "~/composables/useRailState";
+import { useTrails } from "~/composables/useTrails";
+import { INTRO_TIMELINE, TIMELINE_BUILDERS } from "~/utils/timelines";
 
 const { data: publishedChapters } = await useAsyncData(
   "blog-index-chapters",
@@ -118,30 +120,39 @@ if (import.meta.client) {
     requestAnimationFrame(() => whenCarouselReady(run, attempts - 1));
   }
 
+  /**
+   * L'intro est une TIMELINE et non une boucle rAF de plus. Elle est declaree
+   * dans trails, donc editable a chaud depuis l'onglet Timeline de la sonde :
+   * on deplace un keyframe, on change un easing, et l'intro rejoue avec. Une
+   * courbe ecrite en dur dans un tick ne se regle qu'en rechargeant.
+   *
+   * Le rail reste pilote par `scrollOffset` : la timeline ne fait qu'y ecrire,
+   * elle ne double pas la geometrie du carrousel.
+   */
   function runIntroCarousel() {
     const from = scrollOffset.value;
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / INTRO_RUN_DURATION);
-      const eased = 1 - Math.pow(1 - p, 4);
-      const prev = scrollOffset.value;
-      scrollOffset.value = from * (1 - eased);
-      const signed = scrollOffset.value - prev;
-      dynamicGap.value =
-        BASE_GAP + Math.min(Math.abs(signed) * VELOCITY_FACTOR, MAX_GAP_EXTRA);
-      scrollVelocity.value = signed;
-      if (p < 1) {
-        introRafId = requestAnimationFrame(tick);
-        return;
-      }
-      introRafId = null;
-      scrollOffset.value = 0;
-      targetOffset.value = 0;
-      settledOffset.value = 0;
-      dynamicGap.value = BASE_GAP;
-      scrollVelocity.value = 0;
-    };
-    introRafId = requestAnimationFrame(tick);
+    void useTrails(INTRO_TIMELINE, TIMELINE_BUILDERS[INTRO_TIMELINE]).then((tl) => {
+      const rail = tl.subscribe("rail", { offset: from });
+      const off = rail.onApply((values) => {
+        const prev = scrollOffset.value;
+        scrollOffset.value = values.offset ?? 0;
+        const signed = scrollOffset.value - prev;
+        dynamicGap.value =
+          BASE_GAP + Math.min(Math.abs(signed) * VELOCITY_FACTOR, MAX_GAP_EXTRA);
+        scrollVelocity.value = signed;
+        if (tl.playhead < tl.duration) return;
+        // Fin de course : on rend la main au defilement, sans laisser la
+        // timeline continuer d'ecrire sous les doigts de l'utilisateur.
+        off();
+        rail.release();
+        targetOffset.value = scrollOffset.value;
+        settledOffset.value = scrollOffset.value;
+        dynamicGap.value = BASE_GAP;
+        scrollVelocity.value = 0;
+      });
+      tl.seek(0);
+      tl.play();
+    });
   }
 
   function maybeWrap() {

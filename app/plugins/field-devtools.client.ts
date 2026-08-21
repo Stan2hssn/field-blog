@@ -26,13 +26,18 @@ import { useTrails } from '~/composables/useTrails'
 import { useGlScene } from '~/composables/useGlScene'
 import { useRailState } from '~/composables/useRailState'
 import { PAGE_FADE, transitionDebug } from '~/utils/transitions'
+import {
+  PAGE_FADE_TIMELINE,
+  TIMELINE_BUILDERS,
+  TIMELINE_IDS,
+} from '~/utils/timelines'
 
 /** Duree attendue par phase, en ms : c'est elle qui rend l'ecart lisible. */
 const EXPECTED: Record<string, number> = {
   navigate: PAGE_FADE,
 }
 
-const TIMELINES = ['page-fade']
+
 
 /** Ordre d'affichage des domaines du State Δ ; le reste suit par ordre alpha. */
 const DIFF_GROUPS = ['route', 'rail', 'transition', 'scene']
@@ -164,9 +169,7 @@ export default defineNuxtPlugin(() => {
 
   const router = useRouter()
 
-  useTrails('page-fade', (tl) => {
-    tl.fromTo('page', { opacity: 0 }, { opacity: 1 }, { duration: PAGE_FADE / 1000, ease: 'outCubic' })
-  })
+  useTrails(PAGE_FADE_TIMELINE, TIMELINE_BUILDERS[PAGE_FADE_TIMELINE])
 
   mountDevtools({
     // Nomme le projet : sans lui la cle retomberait sur le hostname, partage
@@ -185,8 +188,10 @@ export default defineNuxtPlugin(() => {
         }),
       }),
       timelinePanel({
-        ids: TIMELINES,
-        loadTheatre: (id) => useTrails(id),
+        ids: TIMELINE_IDS,
+        // Le constructeur suit l'id : le panneau peut demander une timeline avant
+        // que la page qui la joue soit montee, sans mettre un theatre vide en cache.
+        loadTheatre: (id) => useTrails(id, TIMELINE_BUILDERS[id]),
         easeNames: EASE_NAMES,
         sampleEase: applyEase,
       }),
