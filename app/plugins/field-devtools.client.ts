@@ -10,6 +10,7 @@ import {
   consolePanel,
   netPanel,
   diffPanel,
+  buildPanel,
   settingsPanel,
   shortcutsPanel,
   codePanel,
@@ -193,6 +194,8 @@ export default defineNuxtPlugin(() => {
       consolePanel(),
       netPanel(),
       diffPanel({ snapshot: () => storeSnapshot(router), groups: DIFF_GROUPS }),
+      // Rejeu de la construction : arme, recharge, et filme la mise en page.
+      buildPanel(),
     ],
     panels: [
       inspectorPanel,
