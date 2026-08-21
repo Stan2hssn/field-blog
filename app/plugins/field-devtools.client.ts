@@ -23,6 +23,7 @@ import { watch } from 'vue'
 import { REVISION } from 'three'
 import { useTrails } from '~/composables/useTrails'
 import { useGlScene } from '~/composables/useGlScene'
+import { useRailState } from '~/composables/useRailState'
 import { PAGE_FADE, transitionDebug } from '~/utils/transitions'
 
 /** Duree attendue par phase, en ms : c'est elle qui rend l'ecart lisible. */
@@ -33,27 +34,29 @@ const EXPECTED: Record<string, number> = {
 const TIMELINES = ['page-fade']
 
 /** Ordre d'affichage des domaines du State Δ ; le reste suit par ordre alpha. */
-const DIFF_GROUPS = ['route', 'transition', 'scene']
+const DIFF_GROUPS = ['route', 'rail', 'transition', 'scene']
 
 /** Deux decimales : la position d'une camera bouge en flottants, pas au pixel. */
 const round = (n: number) => Math.round(n * 100) / 100
 
 /**
  * Ce projet n'a pas de store — son etat vit dans le routeur, le bus de
- * transitions et la scene du rail. Le snapshot les rassemble sous trois
- * domaines : c'est ce que le panneau compare avant/apres chaque interaction.
+ * transitions, la position du rail et sa scene. Le snapshot les rassemble sous
+ * quatre domaines : c'est ce que le panneau compare avant/apres chaque interaction.
  * Lecture ponctuelle et copies plates : le panneau doit pouvoir relire le
  * snapshot d'avant apres que la source a mute en place.
  */
 function storeSnapshot(router: Router): Record<string, unknown> {
   const route = router.currentRoute.value
   const gl = useGlScene().read()
+  const rail = useRailState().read()
   return {
     route: {
       path: route.path,
       name: String(route.name ?? ''),
       params: { ...route.params },
     },
+    rail: rail ? { offset: round(rail.offset()), chapitreActif: rail.active() } : { monte: false },
     transition: {
       route: transitionDebug.route,
       marks: transitionDebug.marks.map((mark) => ({ phase: mark.phase, at: round(mark.at) })),

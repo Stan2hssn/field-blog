@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { CHAPTERS_MANIFEST, CHAPTER_LEVELS } from "~/utils/chapters";
+import { activeIndex } from "~/utils/carousel-layout";
+import { useRailState } from "~/composables/useRailState";
 
 const { data: publishedChapters } = await useAsyncData(
   "blog-index-chapters",
@@ -268,9 +270,18 @@ if (import.meta.client) {
     window.addEventListener("touchend", onTouchEnd, { passive: true });
 
     whenCarouselReady(runIntroCarousel);
+
+    // Publie pour l'onglet State Delta de la sonde : sans lui, faire defiler le
+    // rail ne changeait aucun champ observe et le panneau annoncait, a raison,
+    // « aucun changement ».
+    useRailState().publish({
+      offset: () => scrollOffset.value,
+      active: () => activeIndex(scrollOffset.value),
+    });
   });
 
   onScopeDispose(() => {
+    useRailState().publish(null);
     window.removeEventListener("wheel", onWheel);
     window.removeEventListener("keydown", onKey);
     window.removeEventListener("touchstart", onTouchStart);
