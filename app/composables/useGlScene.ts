@@ -10,6 +10,12 @@ export interface GlSceneHandle {
    * prochain geste de l'utilisateur.
    */
   render: () => void
+  /**
+   * Chapitre survole, ou null. Publie ici et non deduit de la scene : le survol
+   * est un ETAT du rail, pas une consequence lisible d'une position — deux
+   * cartes peuvent partager un z pendant un fondu.
+   */
+  hovered: () => string | null
 }
 
 /**

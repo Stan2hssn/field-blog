@@ -64,6 +64,7 @@ function storeSnapshot(router: Router): Record<string, unknown> {
           objets: gl.scene.children.length,
           visibles: gl.scene.children.filter((child) => child.visible).length,
           cameraZ: round(gl.camera.position.z),
+          survole: gl.hovered(),
         }
       : { montee: false },
   }

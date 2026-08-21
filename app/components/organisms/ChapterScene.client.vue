@@ -169,7 +169,8 @@ function setHover(key: string | null) {
  */
 function align() {
   if (!renderer || !scene || !camera) return
-  const view = { width: window.innerWidth, height: window.innerHeight }
+  const view = viewSize()
+  if (!view) return
   const live = new Set<string>()
 
   for (const slot of slots.value) {
@@ -192,20 +193,61 @@ function align() {
   renderer.render(scene, camera)
 }
 
+/**
+ * Taille de la vue, LUE SUR LE CANVAS et non sur la fenetre. innerWidth compte
+ * la barre de defilement que le canvas n'occupe pas, et 100dvh s'ecarte de
+ * innerHeight sur mobile pendant que les barres du navigateur glissent : mesurer
+ * la fenetre decalerait le monde de quelques pixels par rapport aux rects du
+ * DOM, sur lesquels tout l'alignement repose.
+ *
+ * null quand la vue est degeneree — onglet cache, canvas pas encore dispose.
+ * L'accepter donnerait un aspect 0/0, donc NaN, et une camera dont plus rien
+ * ne se remet : la scene ne reviendrait pas au retour sur l'onglet.
+ */
+function viewSize(): { width: number; height: number } | null {
+  const canvas = surface.value
+  if (!canvas) return null
+  const rect = canvas.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return null
+  return { width: rect.width, height: rect.height }
+}
+
+/** Au-dela de 2, le cout de remplissage double sans gain visible. */
+const MAX_PIXEL_RATIO = 2
+
 function resize() {
   if (!renderer || !camera) return
-  const width = window.innerWidth
-  const height = window.innerHeight
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setSize(width, height, false)
-  camera.aspect = width / height
+  const view = viewSize()
+  if (!view) return
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO))
+  renderer.setSize(view.width, view.height, false)
+  camera.aspect = view.width / view.height
   // Une unite du monde vaut un pixel : c'est cette distance qui le garantit.
-  camera.position.z = pixelPerfectZ(height)
+  camera.position.z = pixelPerfectZ(view.height)
   camera.updateProjectionMatrix()
   align()
 }
 
 let observer: ResizeObserver | null = null
+/** Coupe la veille de densite au demontage : elle se repose elle-meme sinon. */
+const stop = new AbortController()
+
+/**
+ * Changer d'ecran ou zoomer le navigateur modifie la densite de pixels sans
+ * forcement redimensionner l'element : le ResizeObserver ne partirait pas et le
+ * canvas resterait rendu a l'ancien ratio, donc flou. La requete porte sur la
+ * densite courante, on la repose donc a chaque bascule.
+ */
+function watchDensity() {
+  window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener(
+    'change',
+    () => {
+      watchDensity()
+      resize()
+    },
+    { once: true, signal: stop.signal },
+  )
+}
 
 /**
  * Un tick d'attente avant de lire la ref : dans un composant .client de Nuxt,
@@ -241,11 +283,23 @@ onMounted(async () => {
   scene.add(ambient, key)
 
   resize()
+  // Le canvas et non documentElement : il est fixe et plein viewport, il suit
+  // donc les memes changements, mais il previent AUSSI quand il passe d'une
+  // boite nulle a une boite reelle — c'est ce rappel qui remet une vue
+  // degeneree d'aplomb.
   observer = new ResizeObserver(resize)
-  observer.observe(document.documentElement)
+  observer.observe(canvas)
+
+  watchDensity()
 
   // Publiee pour l'onglet Rendu 3D de la sonde.
-  useGlScene().publish({ renderer, scene, camera, render: () => renderer?.render(scene!, camera!) })
+  useGlScene().publish({
+    renderer,
+    scene,
+    camera,
+    render: () => renderer?.render(scene!, camera!),
+    hovered: () => hovered,
+  })
 })
 
 // Le rendu suit le defilement : pas de boucle permanente, le rail ne bouge que
@@ -260,6 +314,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  stop.abort()
   if (raf) cancelAnimationFrame(raf)
   raf = 0
   hoverAt.clear()
