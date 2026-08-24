@@ -1,7 +1,3 @@
-// Chemin absolu et non alias : nuxt.config est charge avant que les alias de
-// l'app existent. Le plugin est en apply:'serve', il n'atteint aucun build.
-import { sondeModuleGraph } from '/Users/stan_husson/Dev/PV/_lib/devtools/vite/index.ts'
-
 export default defineNuxtConfig({
   compatibilityDate: '2026-05-21',
 
@@ -48,8 +44,10 @@ export default defineNuxtConfig({
     '@spices/devtools': '/Users/stan_husson/Dev/PV/_lib/devtools',
   },
 
+  // Le plugin Vite de la sonde s'enregistre depuis `modules/sonde`, qui ne
+  // fait rien hors developpement. Ne reste ici que l'autorisation de servir
+  // `_lib`, une chaine que le build ne resout jamais.
   vite: {
-    plugins: [sondeModuleGraph()],
     server: { fs: { allow: ['..', '/Users/stan_husson/Dev/PV/_lib'] } },
   },
 
