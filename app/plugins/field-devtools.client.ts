@@ -177,6 +177,14 @@ export default defineNuxtPlugin(() => {
     namespace: 'field-blog',
     adapters: [vueAdapter],
     addons: [
+      timelinePanel({
+        ids: TIMELINE_IDS,
+        // Le constructeur suit l'id : le panneau peut demander une timeline avant
+        // que la page qui la joue soit montee, sans mettre un theatre vide en cache.
+        loadTheatre: (id) => useTrails(id, TIMELINE_BUILDERS[id]),
+        easeNames: EASE_NAMES,
+        sampleEase: applyEase,
+      }),
       // La scene du rail de chapitres, publiee par ChapterScene. Des lecteurs et
       // non des references : elle meurt et renait a chaque changement de route.
       glPanel({
@@ -187,27 +195,19 @@ export default defineNuxtPlugin(() => {
           invalidate: () => useGlScene().read()?.render(),
         }),
       }),
-      timelinePanel({
-        ids: TIMELINE_IDS,
-        // Le constructeur suit l'id : le panneau peut demander une timeline avant
-        // que la page qui la joue soit montee, sans mettre un theatre vide en cache.
-        loadTheatre: (id) => useTrails(id, TIMELINE_BUILDERS[id]),
-        easeNames: EASE_NAMES,
-        sampleEase: applyEase,
-      }),
-      a11yPanel,
       consolePanel(),
-      netPanel(),
       diffPanel({ snapshot: () => storeSnapshot(router), groups: DIFF_GROUPS }),
+      netPanel(),
+      a11yPanel,
       // Rejeu de la construction : arme, recharge, et filme la mise en page.
       buildPanel(),
     ],
     panels: [
       inspectorPanel,
-      layersPanel,
       // Le graphe vient du plugin Vite dev-only : sans lui, l'onglet dirait
       // simplement qu'aucun fournisseur n'est branche.
       codePanel({ graph: () => fetch('/__sonde/module-graph').then((r) => r.json()) }),
+      layersPanel,
       tokensPanel({ accept: (name) => !name.startsWith('--tw-') }),
       phasesPanel({
         read: () => ({ route: transitionDebug.route, marks: transitionDebug.marks }),
