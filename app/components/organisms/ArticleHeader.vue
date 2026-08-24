@@ -72,12 +72,16 @@ const layoutId = num ? `article-header-${num}` : undefined
     >
       <component
         :is="isFull ? 'h1' : 'p'"
-        class="font-sans font-medium not-italic text-primary w-full"
-        :class="[
-          isFull
-            ? 'text-[64px] leading-[72px] tracking-[-1.28px]'
-            : 'text-[32px] leading-[40px] tracking-[-0.64px]',
-        ]"
+        class="font-sans font-medium not-italic text-primary"
+        :class="[isFull ? 'max-w-full' : 'w-full text-[32px] leading-[40px] tracking-[-0.64px]']"
+        :style="isFull
+          ? {
+              fontSize: 'calc(var(--title-unit) * var(--title-scale))',
+              lineHeight: '1.125',
+              letterSpacing: '-0.02em',
+              width: 'calc(var(--title-unit) * var(--title-scale) * var(--title-measure))',
+            }
+          : undefined"
       >
         {{ title }}
       </component>

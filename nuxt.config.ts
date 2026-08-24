@@ -73,5 +73,7 @@ export default defineNuxtConfig({
     transpile: ['gsap'],
   },
 
-  devtools: { enabled: true },
+  // La sonde remplace @nuxt/devtools : deux outils qui posent chacun un calque
+  // plein viewport au-dessus de la page se disputent le pointeur pour rien.
+  devtools: { enabled: false },
 })

@@ -29,6 +29,21 @@
   --dur-base: 200ms;
   --dur-slow: 400ms;
 
+  /* Titre : la cesure depend de largeur/corps. Les deux titres derivent de la
+     meme unite avec le meme --title-measure, donc ils cassent leurs lignes aux
+     memes mots a toute largeur. --title-scale vaut 64/28 en fraction exacte :
+     c'est le rapport que useTitleMorph consomme comme scale. */
+  --title-unit: 1.9444vw;
+  --title-measure: 12.25;
+  --title-scale: calc(16 / 7);
+  --title-lines: 4;
+  --lede-lines: 5;
+  /* Hauteurs FIXES des deux boites. Le titre est cale en bas et le lede en haut
+     a l'interieur : c'est ce qui fige l'ecart entre le bas du titre et le haut
+     du lede, quel que soit le nombre de lignes de chacun. */
+  --title-box: calc(var(--title-unit) * 1.2857 * var(--title-lines));
+  --lede-box: calc(26px * var(--lede-lines));
+
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -53,6 +53,12 @@ const nextForAside = computed(() => {
   return null
 })
 
+
+onMounted(() => {
+  markPhase('leave:end')
+})
+
+
 useSeoMeta({
   title: () => `${chapter.value?.title ?? ''} — FIELD`,
   description: () => chapter.value?.lede,
@@ -64,79 +70,79 @@ useSeoMeta({
 </script>
 
 <template>
-  <ScrollProgressBar />
+  <div>
+    <ScrollProgressBar />
 
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:bg-bg focus:border focus:border-primary focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:uppercase focus:tracking-kicker">
-    Aller au contenu
-  </a>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:bg-bg focus:border focus:border-primary focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:uppercase focus:tracking-kicker">
+      Aller au contenu
+    </a>
 
-  <main v-if="chapter" id="main-content" class="relative bg-bg min-h-screen p-[32px]">
-    <BrandLogo
-      as="link"
-      to="/blog"
-      size="hero"
-      class="fixed left-[32px] top-[32px] z-40"
-    />
+    <main v-if="chapter" id="main-content" class="relative bg-bg min-h-screen p-[32px]">
 
-    <div class="ml-[331px] grid grid-cols-[minmax(0,786px)_49px_282px] max-xl:grid-cols-[minmax(0,1fr)_32px_240px] max-lg:grid-cols-1 max-lg:gap-y-16 max-lg:ml-0 max-lg:pt-[120px]">
-      <article class="min-w-0">
-        <ArticleHeader
-          state="full"
-          :num="chapter.num"
-          :category="primaryCategory"
-          :publish-date="chapter.publishDate"
-          :reading-time="chapter.readingTime"
-          :title="chapter.title"
-          :body="chapter.lede"
-          class="mb-[96px]"
-        />
-
-        <div class="flex flex-col gap-[12px] items-start w-full mb-[40px]">
-          <p class="font-sans font-semibold not-italic text-[12px] leading-[16px] tracking-[0.96px] text-primary uppercase whitespace-nowrap">
-            ARTICLE
-          </p>
-          <hr class="w-full h-px border-0 bg-rule m-0" aria-hidden="true" />
-        </div>
-
-        <section
-          v-for="(section, idx) in chapter.sections"
-          :key="section.num"
-          class="flex flex-col gap-[40px] w-full"
-          :class="idx > 0 && 'mt-[176px] pt-[40px] border-t border-rule'"
-        >
-          <SectionHead
-            :num="section.num"
-            :kicker="section.kicker"
-            :title="section.title"
-            as="h2"
+      <div class="ml-[22.99vw] grid grid-cols-[54.58vw_3.40vw_19.58vw] max-xl:grid-cols-[minmax(0,1fr)_32px_240px] max-lg:grid-cols-1 max-lg:gap-y-16 max-lg:ml-0 max-lg:pt-[120px]">
+        <article class="min-w-0">
+          <ArticleHeader
+            state="full"
+            :num="chapter.num"
+            :category="primaryCategory"
+            :publish-date="chapter.publishDate"
+            :reading-time="chapter.readingTime"
+            :title="chapter.title"
+            :body="chapter.lede"
+            class="mb-[96px]"
           />
 
-          <p class="font-sans font-light text-[16px] leading-[28px] text-primary w-full">
-            {{ section.body }}
-          </p>
-
-          <div class="grid md:grid-cols-2 gap-x-[64px] gap-y-[24px] w-full">
-            <DoDontList variant="do" :items="section.doItems" />
-            <DoDontList variant="dont" :items="section.dontItems" />
+          <div
+            class="flex flex-col gap-[12px] items-start w-full mb-[40px]"
+          >
+            <p class="font-sans font-semibold not-italic text-[12px] leading-[16px] tracking-[0.96px] text-primary uppercase whitespace-nowrap">
+              ARTICLE
+            </p>
+            <hr class="w-full h-px border-0 bg-rule m-0" aria-hidden="true" />
           </div>
 
-          <PullQuote>{{ section.why }}</PullQuote>
-        </section>
+          <section
+            v-for="(section, idx) in chapter.sections"
+            :key="section.num"
+            class="flex flex-col gap-[40px] w-full"
+            :class="idx > 0 && 'mt-[176px] pt-[40px] border-t border-rule'"
+          >
+            <SectionHead
+              :num="section.num"
+              :kicker="section.kicker"
+              :title="section.title"
+              as="h2"
+            />
 
-        <ClosingBlock :text="chapter.closing" class="mt-[176px] pt-[40px] border-t border-rule" />
-      </article>
+            <p class="font-sans font-light text-[16px] leading-[28px] text-primary w-full">
+              {{ section.body }}
+            </p>
 
-      <div aria-hidden="true" />
+            <div class="grid md:grid-cols-2 gap-x-[64px] gap-y-[24px] w-full">
+              <DoDontList variant="do" :items="section.doItems" />
+              <DoDontList variant="dont" :items="section.dontItems" />
+            </div>
 
-      <aside class="lg:mt-[384px] lg:sticky lg:top-[32px] lg:self-start">
-        <AboutPanel
-          :publish-date="chapter.publishDate"
-          :reading-time="chapter.readingTime"
-          :categories="chapter.categories"
-          :sections="chapter.sections.map(s => ({ num: s.num, kicker: s.kicker }))"
-          :next="nextForAside"
-        />
-      </aside>
-    </div>
-  </main>
+            <PullQuote>{{ section.why }}</PullQuote>
+          </section>
+
+          <ClosingBlock :text="chapter.closing" class="mt-[176px] pt-[40px] border-t border-rule" />
+        </article>
+
+        <div aria-hidden="true" />
+
+        <aside
+          class="lg:mt-[384px] lg:sticky lg:top-[32px] lg:self-start"
+        >
+          <AboutPanel
+            :publish-date="chapter.publishDate"
+            :reading-time="chapter.readingTime"
+            :categories="chapter.categories"
+            :sections="chapter.sections.map(s => ({ num: s.num, kicker: s.kicker }))"
+            :next="nextForAside"
+          />
+        </aside>
+      </div>
+    </main>
+  </div>
 </template>

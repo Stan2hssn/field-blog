@@ -60,6 +60,37 @@ a {
   outline-offset: 2px;
 }
 
+/* Toutes les transitions : un fade d'opacite, sans delai, sans exception. */
+.page-enter-active,
+.page-leave-active,
+.fade-up-enter-active,
+.fade-up-leave-active,
+.fade-down-enter-active,
+.fade-down-leave-active {
+  transition: opacity var(--dur-base) var(--ease-in-out);
+}
+
+.page-enter-from,
+.page-leave-to,
+.fade-up-enter-from,
+.fade-up-leave-to,
+.fade-down-enter-from,
+.fade-down-leave-to {
+  opacity: 0;
+}
+
+/* Apparition au chargement du document. Une animation et non une transition :
+   elle ne peut jouer qu'une fois, donc jamais lors d'une navigation. */
+@keyframes app-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+.app-logo {
+  animation: app-appear var(--dur-slow) var(--ease-in-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
