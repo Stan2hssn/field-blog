@@ -1,5 +1,4 @@
 import {
-  mountDevtools,
   vueAdapter,
   inspectorPanel,
   timelinePanel,
@@ -16,8 +15,10 @@ import {
   codePanel,
   glPanel,
   threeAdapter,
-} from '@spices/devtools'
-import type { PhaseCapture, WaterfallLane, WaterfallRecord } from '@spices/devtools'
+  configPanel,
+  persistToProject,
+} from '@sonde/core'
+import type { ConfigSource, ConfigValues, DevtoolsOpts, PhaseCapture, WaterfallLane, WaterfallRecord } from '@sonde/core'
 import type { Router } from 'vue-router'
 import { EASE_NAMES, applyEase } from '@spices/trails'
 import { watch } from 'vue'
@@ -25,6 +26,15 @@ import { REVISION } from 'three'
 import { useTrails } from '~/composables/useTrails'
 import { useGlScene } from '~/composables/useGlScene'
 import { useRailState } from '~/composables/useRailState'
+import { useDevlogMeadow } from '~/composables/useDevlogMeadow'
+import type { MeadowParams } from '~/utils/devlog-meadow.config'
+import {
+  MEADOW_CONFIG_ID,
+  MEADOW_DEFAULTS,
+  MEADOW_SCHEMA,
+  MEADOW_WRITE_ROUTE,
+  meadowParams,
+} from '~/utils/devlog-meadow.config'
 import { PAGE_FADE, transitionDebug } from '~/utils/transitions'
 import {
   PAGE_FADE_TIMELINE,
@@ -37,8 +47,6 @@ const EXPECTED: Record<string, number> = {
   navigate: PAGE_FADE,
 }
 
-
-
 /** Ordre d'affichage des domaines du State Δ ; le reste suit par ordre alpha. */
 const DIFF_GROUPS = ['route', 'rail', 'transition', 'scene']
 
@@ -47,10 +55,9 @@ const round = (n: number) => Math.round(n * 100) / 100
 
 /**
  * Ce projet n'a pas de store — son etat vit dans le routeur, le bus de
- * transitions, la position du rail et sa scene. Le snapshot les rassemble sous
- * quatre domaines : c'est ce que le panneau compare avant/apres chaque interaction.
- * Lecture ponctuelle et copies plates : le panneau doit pouvoir relire le
- * snapshot d'avant apres que la source a mute en place.
+ * transitions, la position du rail et sa scene. Lecture ponctuelle et copies
+ * plates : le panneau doit pouvoir relire le snapshot d'avant apres que la
+ * source a mute en place.
  */
 function storeSnapshot(router: Router): Record<string, unknown> {
   const route = router.currentRoute.value
@@ -79,7 +86,6 @@ function storeSnapshot(router: Router): Record<string, unknown> {
   }
 }
 
-
 /** initiatorType du navigateur vers les lanes du waterfall. */
 const LANES: Record<string, WaterfallLane> = {
   fetch: 'reseau',
@@ -90,14 +96,11 @@ const LANES: Record<string, WaterfallLane> = {
   link: 'style',
 }
 
-/** Au-dela, le waterfall devient illisible : en dev, une page charge des centaines
- *  de modules. On garde les plus longs, ce sont eux qui expliquent le temps. */
+/** En dev une page charge des centaines de modules : on garde les plus longs,
+ *  ce sont eux qui expliquent le temps. */
 const MAX_RECORDS = 40
 
-/**
- * Le waterfall se lit dans l'API Performance, pas dans le bus : c'est le
- * navigateur qui mesure. Pas de lane `layout`, aucune API ne l'expose.
- */
+/** Le waterfall se lit dans l'API Performance : c'est le navigateur qui mesure. */
 function waterfall(): WaterfallRecord[] {
   const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
   const records: WaterfallRecord[] = []
@@ -119,18 +122,14 @@ function waterfall(): WaterfallRecord[] {
   return kept
 }
 
-/** Sans navigation d'ici la, l'enregistrement rend la main plutot que d'attendre. */
 const CAPTURE_TIMEOUT = 15_000
 /** Laisse le paint et les dernieres ressources entrer dans les mesures. */
 const SETTLE = 600
 
 let captureCount = 0
 
-/**
- * Arme l'enregistrement de la PROCHAINE navigation : c'est le geste que la
- * maquette attend du bouton Rec. On lit apres coup ce que le navigateur et le
- * bus ont mesure — rien n'est simule.
- */
+/** Arme l'enregistrement de la PROCHAINE navigation, puis lit ce que le
+ *  navigateur et le bus ont mesure — rien n'est simule. */
 function record(router: Router): Promise<PhaseCapture> {
   return new Promise((resolve, reject) => {
     let stop: (() => void) | null = null
@@ -157,23 +156,40 @@ function record(router: Router): Promise<PhaseCapture> {
 }
 
 /**
- * Montage de la spice devtools. Dev uniquement : elle lit des instances Vue et
- * type.__file, qui n'existent pas dans le build.
- * Imports statiques volontairement : en dynamique, un echec de resolution est
- * avale par la promesse du plugin et l'outil disparait sans erreur.
- * trails et le bus de transitions sont injectes ici — la spice ne doit
- * dependre ni de l'un ni de l'autre.
+ * Ce que SONDE monte dans ce projet. `@sonde/core/nuxt` appelle cette fonction
+ * depuis son plugin client, en developpement seulement : on est donc dans le
+ * contexte de l'app Nuxt, `useRouter` y est disponible.
+ * Pas de drapeau d'URL : la sonde se monte d'office en dev, comme avant.
+ * trails et le bus de transitions sont injectes ici — la sonde ne depend ni de
+ * l'un ni de l'autre.
  */
-export default defineNuxtPlugin(() => {
-  if (!import.meta.dev) return
+/**
+ * Ilot du devlog. Lu dans la scene montee, ou dans les valeurs enregistrees
+ * quand on regle depuis une autre page : le reglage s'appliquera au prochain
+ * montage de la scene.
+ */
+const meadowSource: ConfigSource = {
+  id: MEADOW_CONFIG_ID,
+  label: 'Îlot du devlog',
+  schema: MEADOW_SCHEMA,
+  defaults: { ...MEADOW_DEFAULTS },
+  read: () => ({ ...(useDevlogMeadow().read()?.params() ?? meadowParams()) }),
+  apply(values: ConfigValues) {
+    const meadow = useDevlogMeadow().read()
+    if (!meadow) return { ok: false, error: 'Scène du devlog non montée : ouvrir /devlog.' }
+    meadow.configure({ ...meadow.params(), ...(values as Partial<MeadowParams>) })
+  },
+  save: (id, overrides) => persistToProject(MEADOW_WRITE_ROUTE, id, overrides),
+}
 
+export default function sonde(): DevtoolsOpts | null {
   const router = useRouter()
 
   useTrails(PAGE_FADE_TIMELINE, TIMELINE_BUILDERS[PAGE_FADE_TIMELINE])
 
-  mountDevtools({
-    // Nomme le projet : sans lui la cle retomberait sur le hostname, partage
-    // par tous les projets servis depuis localhost.
+  return {
+    // Sans lui la cle de persistance retomberait sur le hostname, partage par
+    // tous les projets servis depuis localhost.
     namespace: 'field-blog',
     adapters: [vueAdapter],
     addons: [
@@ -185,8 +201,9 @@ export default defineNuxtPlugin(() => {
         easeNames: EASE_NAMES,
         sampleEase: applyEase,
       }),
-      // La scene du rail de chapitres, publiee par ChapterScene. Des lecteurs et
-      // non des references : elle meurt et renait a chaque changement de route.
+      configPanel({ sources: [meadowSource] }),
+      // Des lecteurs et non des references : la scene du rail meurt et renait
+      // a chaque changement de route.
       glPanel({
         adapter: threeAdapter({
           renderer: () => useGlScene().read()?.renderer ?? null,
@@ -199,19 +216,16 @@ export default defineNuxtPlugin(() => {
       diffPanel({ snapshot: () => storeSnapshot(router), groups: DIFF_GROUPS }),
       netPanel(),
       a11yPanel,
-      // Rejeu de la construction : arme, recharge, et filme la mise en page.
       buildPanel(),
     ],
     panels: [
       inspectorPanel,
-      // Le graphe vient du plugin Vite dev-only : sans lui, l'onglet dirait
-      // simplement qu'aucun fournisseur n'est branche.
+      // Le graphe est servi par le plugin Vite que le module Nuxt enregistre.
       codePanel({ graph: () => fetch('/__sonde/module-graph').then((r) => r.json()) }),
       layersPanel,
       tokensPanel({ accept: (name) => !name.startsWith('--tw-') }),
       phasesPanel({
         read: () => ({ route: transitionDebug.route, marks: transitionDebug.marks }),
-        // Le bus est un reactive Vue ; la spice ne connait que ce callback.
         // deep obligatoire : beginTransition vide les marks et markPhase en
         // repousse une dans le meme tick — une longueur revenue a l'identique
         // ne declencherait aucun watcher.
@@ -220,10 +234,8 @@ export default defineNuxtPlugin(() => {
         waterfall,
         record: () => record(router),
       }),
-      // Epingle en bas du rail. Sans liste : les interrupteurs sont ceux des
-      // add-ons reellement montes ci-dessus, ils ne peuvent pas en oublier un.
       settingsPanel({}),
       shortcutsPanel,
     ],
-  })
-})
+  }
+}
