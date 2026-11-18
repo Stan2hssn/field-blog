@@ -26,3 +26,6 @@ logs
 # Outils locaux
 .claude/
 .playwright-mcp/
+
+# Sauvegardes automatiques de l'ecriture sonde
+*.values.json.bak

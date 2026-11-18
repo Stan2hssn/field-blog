@@ -30,5 +30,24 @@ export default defineContentConfig({
         closing: z.string(),
       }),
     }),
+    // Long-form : le corps Markdown est l'article. Le schema checklist du blog
+    // ne porte ni code ni schemas, d'ou une collection a part.
+    devlog: defineCollection({
+      type: 'page',
+      source: 'devlog/**/*.md',
+      schema: z.object({
+        num: z.string(),
+        slug: z.string(),
+        series: z.string(),
+        title: z.string(),
+        lede: z.string(),
+        publishDate: z.date(),
+        readingTime: z.number(),
+        tags: z.array(z.string()),
+        sections: z.array(z.object({ num: z.string(), kicker: z.string() })),
+        nextSlug: z.string().optional(),
+        closing: z.string(),
+      }),
+    }),
   },
 })

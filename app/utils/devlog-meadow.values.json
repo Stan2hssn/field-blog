@@ -1,0 +1,24 @@
+{
+  "island": {
+    "grassRadius": 1.19,
+    "tuftCount": 10000,
+    "grassHeight": 0.64,
+    "grassWidth": 0.72,
+    "heightVariance": 0.11,
+    "tallChance": 0.13,
+    "tallBoost": 0.18,
+    "redAmount": 0.8,
+    "paleAmount": 0.75,
+    "wind": 3.55,
+    "centerHeight": 1.01,
+    "edgeHeight": 0,
+    "centerWidth": 0.89,
+    "edgeWidth": 3,
+    "radialStart": 0.08,
+    "radialPower": 2.69,
+    "speckDensity": 0.04,
+    "speckSize": 1.3,
+    "sphereScale": 1.02,
+    "sphereSink": 0.88
+  }
+}

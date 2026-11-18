@@ -1,0 +1,314 @@
+/* Corps des articles long-form (ContentRenderer). Meme rythme que le corps des
+   sections checklist : Inter light 16/28, regles 1px, kickers mono. */
+.devlog-prose {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 28px;
+  color: var(--color-text-primary);
+}
+
+.devlog-prose > p,
+.devlog-prose > ul,
+.devlog-prose > ol,
+.devlog-prose > blockquote {
+  max-width: 66ch;
+}
+
+.devlog-prose > * + * {
+  margin-top: var(--space-6);
+}
+
+.devlog-prose h3 {
+  margin-top: var(--space-16);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 30px;
+  letter-spacing: -0.015em;
+  scroll-margin-top: 80px;
+}
+
+.devlog-prose h3 a,
+.devlog-prose h2 a {
+  color: inherit;
+}
+
+.devlog-prose strong {
+  font-weight: 600;
+}
+
+.devlog-prose em {
+  font-style: italic;
+}
+
+.devlog-prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.devlog-prose a:hover {
+  color: var(--color-accent);
+}
+
+.devlog-prose ul,
+.devlog-prose ol {
+  padding-left: var(--space-6);
+}
+
+.devlog-prose ul {
+  list-style: none;
+}
+
+.devlog-prose ul > li {
+  position: relative;
+}
+
+.devlog-prose ul > li::before {
+  content: "—";
+  position: absolute;
+  left: calc(-1 * var(--space-6));
+  color: var(--color-text-mid);
+}
+
+.devlog-prose ol {
+  list-style: decimal-leading-zero;
+}
+
+.devlog-prose ol > li::marker {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-accent);
+}
+
+.devlog-prose li + li {
+  margin-top: var(--space-2);
+}
+
+.devlog-prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-bg-card);
+}
+
+.devlog-prose pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 22px;
+  padding: var(--space-6);
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--color-rule);
+  overflow-x: auto;
+}
+
+.devlog-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.devlog-prose th {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  text-align: left;
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.devlog-prose td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-text-greyed);
+  vertical-align: top;
+}
+
+.devlog-prose blockquote {
+  margin: 0;
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--color-rule);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.devlog-prose hr {
+  border: 0;
+  height: 1px;
+  background: var(--color-rule);
+}
+
+.devlog-prose > .devlog-section {
+  margin-top: 176px;
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-rule);
+  margin-bottom: var(--space-4);
+}
+
+.devlog-prose > .devlog-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.devlog-prose > .devlog-figure,
+.devlog-prose > .devlog-note,
+.devlog-prose > .devlog-your-code {
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-6);
+}
+
+/* Shiki genere les deux themes ; la nuit lit la variable --shiki-dark. */
+:root[data-devlog-theme="night"] .devlog-prose pre,
+:root[data-devlog-theme="night"] .devlog-prose pre span {
+  color: var(--shiki-dark) !important;
+}
+
+/*
+ * Navigation liste <-> article (View Transitions, voir middleware/transition).
+ * La page sortante recule et s'efface, l'entrante monte depuis le bas. Dans
+ * chaque keyframe, l'opacite atteint sa valeur finale avant la translation.
+ * Le titre de l'article est partage : il vole de la ligne de liste au titre.
+ */
+::view-transition-old(root) {
+  animation: devlog-page-out 420ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+
+::view-transition-new(root) {
+  animation: devlog-page-in 900ms cubic-bezier(0.16, 1, 0.3, 1) 140ms both;
+}
+
+::view-transition-group(*) {
+  animation-duration: 820ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes devlog-page-out {
+  0% { opacity: 1; transform: none; filter: blur(0); }
+  70% { opacity: 0; }
+  100% { opacity: 0; transform: translate3d(0, -32px, 0) scale(0.985); filter: blur(6px); }
+}
+
+@keyframes devlog-page-in {
+  0% { opacity: 0; transform: translate3d(0, 56px, 0); }
+  40% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/*
+ * Comparaison C++ / TypeScript (composant CodeCompare). Deux colonnes cote a
+ * cote : la colonne de l'article est trop etroite pour deux blocs de code, le
+ * bloc deborde donc dans la marge gauche, vide a partir de lg.
+ */
+.code-compare {
+  --compare-bleed: 0px;
+  margin-left: calc(-1 * var(--compare-bleed));
+  width: calc(100% + var(--compare-bleed));
+}
+
+.code-compare__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.code-compare__label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
+}
+
+.devlog-prose .code-compare pre {
+  font-size: 12px;
+  line-height: 19px;
+  padding: var(--space-4);
+  margin: 0;
+  height: 100%;
+}
+
+.code-compare .prose-pre {
+  height: calc(100% - 24px);
+}
+
+@media (min-width: 1024px) {
+  .code-compare {
+    --compare-bleed: min(calc(22.99vw - 32px), 360px);
+  }
+
+  .code-compare__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* Petits ecrans : rien ne doit elargir la page. Les mots longs (chemins,
+   identifiants C++) se coupent, tableaux et formules defilent dans leur boite. */
+.devlog-prose {
+  overflow-wrap: break-word;
+}
+
+.devlog-prose :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+
+.devlog-prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+@media (max-width: 767px) {
+  .devlog-prose {
+    font-size: 16px;
+    line-height: 26px;
+  }
+
+  .devlog-prose table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .devlog-prose pre {
+    padding: var(--space-4);
+    margin-left: -16px;
+    margin-right: -16px;
+  }
+
+  .devlog-prose .code-compare pre {
+    margin: 0;
+  }
+}
+
+/* Le titre d'article est dimensionne en vw pour le desktop : sous lg il
+   deviendrait minuscule, on repasse a une taille lisible. */
+@media (max-width: 1023px) {
+  .devlog-article .article-header {
+    gap: var(--space-8);
+    padding-right: 72px;
+  }
+
+  .devlog-article .article-header h1 {
+    font-size: clamp(30px, 6.5vw, 44px) !important;
+    width: auto !important;
+  }
+
+  .devlog-article .article-header h1 + p {
+    font-size: 17px;
+    line-height: 26px;
+  }
+}

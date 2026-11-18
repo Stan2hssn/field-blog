@@ -11,6 +11,7 @@
 
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Newsreader", Georgia, serif;
 
   --tracking-kicker: 1.76px;
 
@@ -46,4 +47,32 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Jour du devlog : creme de la reference plutot que blanc pur. */
+:root[data-devlog-theme="day"] {
+  --color-bg-page: #f8f6f0;
+  --color-bg-card: #efece3;
+}
+
+:root[data-devlog-theme="day"] body {
+  background: var(--color-bg-page);
+}
+
+/* Nuit : scope au devlog via l'attribut pose par useDevlogTheme. Les tokens
+   sont redefinis a la racine pour que le logo fixe et le fond suivent aussi. */
+:root[data-devlog-theme="night"] {
+  --color-text-primary: #ecebe6;
+  --color-text-secondary: #a8a7a1;
+  --color-text-mid: #7d7c77;
+  --color-text-greyed: #3d3d40;
+  --color-bg-page: #141416;
+  --color-bg-card: #1d1d20;
+  --color-accent: #ff6a40;
+  --color-rule: #ecebe6;
+  color-scheme: dark;
+}
+
+:root[data-devlog-theme="night"] body {
+  background: var(--color-bg-page);
 }

@@ -8,19 +8,43 @@ export default defineNuxtConfig({
     '@nuxtjs/google-fonts',
     '@pinia/nuxt',
     '@vueuse/nuxt',
+    // SONDE est une dependance : le module ne fait rien hors developpement.
+    '@sonde/core/nuxt',
   ],
+
+  sonde: {
+    panels: '~/sonde.config',
+    routes: { meadow: 'app/utils/devlog-meadow.values.json' },
+  },
+
+  content: {
+    build: {
+      markdown: {
+        remarkPlugins: { 'remark-math': {} },
+        rehypePlugins: { 'rehype-katex': { output: 'html' } },
+        highlight: {
+          theme: { default: 'github-light', dark: 'github-dark' },
+          langs: ['cpp', 'cmake', 'bash'],
+        },
+      },
+    },
+  },
 
   ssr: true,
   nitro: {
     prerender: {
       crawlLinks: true,
-      routes: ['/blog'],
+      routes: ['/blog', '/devlog'],
       ignore: ['/_dev'],
     },
   },
 
   routeRules: {
     '/': { redirect: { to: '/blog', statusCode: 301 } },
+  },
+
+  experimental: {
+    viewTransition: true,
   },
 
   app: {
@@ -34,33 +58,36 @@ export default defineNuxtConfig({
   },
 
   components: [
+    // global : obligatoire pour que le Markdown (MDC) resolve ces composants.
+    { path: '~/components/content', pathPrefix: false, global: true },
     { path: '~/components', pathPrefix: false },
   ],
 
   alias: {
-    // Source unique des spices, partagee entre projets en attendant un module node.
+    // trails n'est pas dans @sonde/core : il reste la source partagee de `_lib`
+    // en attendant son propre paquet. Il est importe a l'execution (blog,
+    // devlog), donc aussi par le build de production.
     '@spices/trails': '/Users/stan_husson/Dev/PV/_lib/trails',
-    '@spices/devtools/vite': '/Users/stan_husson/Dev/PV/_lib/devtools/vite/index.ts',
-    '@spices/devtools': '/Users/stan_husson/Dev/PV/_lib/devtools',
   },
 
-  // Le plugin Vite de la sonde s'enregistre depuis `modules/sonde`, qui ne
-  // fait rien hors developpement. Ne reste ici que l'autorisation de servir
-  // `_lib`, une chaine que le build ne resout jamais.
+  // Autorise le serveur de dev a servir `_lib/trails`, hors de la racine.
   vite: {
-    server: { fs: { allow: ['..', '/Users/stan_husson/Dev/PV/_lib'] } },
+    server: { fs: { allow: ['..', '/Users/stan_husson/Dev/PV/_lib/trails'] } },
   },
 
   css: [
     '~/assets/css/tokens.css',
     '~/assets/css/main.css',
     '~/assets/css/tailwind.css',
+    'katex/dist/katex.min.css',
+    '~/assets/css/devlog.css',
   ],
 
   googleFonts: {
     families: {
       Inter: [300, 400, 500, 600, 700],
       'JetBrains Mono': [500],
+      Newsreader: { wght: [300, 400, 500], ital: [300, 400] },
     },
     display: 'swap',
     download: true,
