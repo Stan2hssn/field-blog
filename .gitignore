@@ -29,3 +29,6 @@ logs
 
 # Sauvegardes automatiques de l'ecriture sonde
 *.values.json.bak
+
+# Captures Spector (debug GPU, ~30 Mo)
+public/capture*.json

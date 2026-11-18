@@ -20,15 +20,34 @@ const lastSlug = useState<string | null>('devlog-last-slug', () => null)
 
 useDevlogTheme()
 
-const { data: entries } = await useAsyncData('devlog-index', () =>
-  queryCollection('devlog').order('publishDate', 'DESC').all(),
-)
+type ListEntry = {
+  slug: string
+  to: string
+  title: string
+  lede: string
+  tags: string[]
+  publishDate: string | Date
+  readingTime: number
+}
+
+// Les chapitres du blog (premiere version du site) gardent leur page et leur
+// mise en page checklist : la liste les range simplement avec le devlog.
+const { data: entries } = await useAsyncData('devlog-index', async (): Promise<ListEntry[]> => {
+  const [devlog, blog] = await Promise.all([
+    queryCollection('devlog').all(),
+    queryCollection('blog').all(),
+  ])
+  return [
+    ...devlog.map(e => ({ slug: e.slug, to: `/devlog/${e.slug}`, title: e.title, lede: e.lede, tags: e.tags, publishDate: e.publishDate, readingTime: e.readingTime })),
+    ...blog.map(e => ({ slug: e.slug, to: `/blog/${e.slug}`, title: e.title, lede: e.lede, tags: e.tags ?? [], publishDate: e.publishDate, readingTime: e.readingTime })),
+  ].sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+})
 
 const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 const HEADER_PARALLAX = 0.3
 
 const years = computed(() => {
-  const groups = new Map<number, NonNullable<typeof entries.value>>()
+  const groups = new Map<number, ListEntry[]>()
   for (const e of entries.value ?? []) {
     const year = new Date(e.publishDate).getFullYear()
     groups.set(year, [...(groups.get(year) ?? []), e])
@@ -365,7 +384,7 @@ useSeoMeta({
               Build your handmade 3D software
             </h2>
             <p class="font-sans font-light text-[18px] leading-[28px] text-secondary">
-              {{ total }} articles, un par jour de code.
+              {{ total }} articles, du design au moteur 3D.
             </p>
           </header>
 
@@ -382,11 +401,11 @@ useSeoMeta({
             <ol class="flex flex-col mb-[96px]">
               <li
                 v-for="e in group.items"
-                :key="e.slug"
+                :key="e.to"
                 class="border-b border-[color-mix(in_srgb,var(--color-rule)_12%,transparent)] last:border-b-0"
               >
                 <NuxtLink
-                  :to="`/devlog/${e.slug}`"
+                  :to="e.to"
                   @click="lastSlug = e.slug"
                   class="group flex flex-col gap-[6px] py-[22px] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
