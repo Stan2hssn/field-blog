@@ -32,6 +32,14 @@ export interface MeadowParams {
   metalSphere: number
   smallSpheres: number
   sphereSink: number
+  clayBump: number
+  clayScale: number
+  metalRoughness: number
+  glassRefraction: number
+  glassDispersion: number
+  pointerRadius: number
+  pointerStrength: number
+  pointerSoftness: number
 }
 
 export const MEADOW_CONFIG_ID = 'island'
@@ -62,6 +70,14 @@ export const MEADOW_DEFAULTS: MeadowParams = {
   metalSphere: 1,
   smallSpheres: 1,
   sphereSink: 0.85,
+  clayBump: 0.6,
+  clayScale: 3.2,
+  metalRoughness: 0.06,
+  glassRefraction: 0.3,
+  glassDispersion: 0.5,
+  pointerRadius: 1.5,
+  pointerStrength: 1,
+  pointerSoftness: 0.35,
 }
 
 /** Ces cles changent la repartition : les modifier re-seme les touffes. */
@@ -123,6 +139,26 @@ export const MEADOW_SCHEMA: ConfigGroup[] = [
       { kind: 'number', key: 'metalSphere', label: 'Métal', min: 0.1, max: 3, step: 0.01 },
       { kind: 'number', key: 'smallSpheres', label: 'Petites', min: 0.1, max: 3, step: 0.01 },
       { kind: 'number', key: 'sphereSink', label: 'Hauteur de pose', min: 0, max: 1.5, step: 0.01, hint: 'En rayons : 1 = posée sur le sol, moins = enfoncée.' },
+    ],
+  },
+  {
+    id: 'materials',
+    label: 'Matières',
+    fields: [
+      { kind: 'number', key: 'clayBump', label: 'Relief de l\'argile', min: 0, max: 1.5, step: 0.01 },
+      { kind: 'number', key: 'clayScale', label: 'Grain de l\'argile', min: 0.5, max: 12, step: 0.1 },
+      { kind: 'number', key: 'metalRoughness', label: 'Rugosité du métal', min: 0, max: 0.6, step: 0.01 },
+      { kind: 'number', key: 'glassRefraction', label: 'Réfraction du verre', min: 0, max: 1.2, step: 0.01 },
+      { kind: 'number', key: 'glassDispersion', label: 'Dispersion du verre', min: 0, max: 2, step: 0.01, hint: 'Écart entre rouge, vert et bleu : l\'arc-en-ciel sur les bords.' },
+    ],
+  },
+  {
+    id: 'pointer',
+    label: 'Souris',
+    fields: [
+      { kind: 'number', key: 'pointerRadius', label: 'Rayon', min: 0.2, max: 3, step: 0.01 },
+      { kind: 'number', key: 'pointerStrength', label: 'Force', min: 0, max: 3, step: 0.01 },
+      { kind: 'number', key: 'pointerSoftness', label: 'Douceur', min: 0.02, max: 1.5, step: 0.01, hint: 'Temps en secondes que met l\'herbe à suivre le vent : plus haut, plus enveloppant.' },
     ],
   },
 ]

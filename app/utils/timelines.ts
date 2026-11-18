@@ -70,11 +70,11 @@ export const DEVLOG_CAMERA_SCENE: DevlogCamera = {
 /** Plus serre que la scene : les sommets qui depassent en bas de la liste
  *  doivent se lire en grand. */
 export const DEVLOG_CAMERA_ARTICLES: DevlogCamera = {
-  fov: 40,
-  distance: 9.6,
+  fov: 50,
+  distance: 6.9,
   height: 1.7,
   targetY: 0.5,
-  shift: -0.57,
+  shift: -0.321,
 }
 
 /**

@@ -1,17 +1,23 @@
 <script setup lang="ts">
 import {
   ACESFilmicToneMapping,
+  CubeCamera,
+  HalfFloatType,
   PCFShadowMap,
   PerspectiveCamera,
   PMREMGenerator,
   Scene,
   SRGBColorSpace,
   Timer,
+  Vector2,
+  WebGLCubeRenderTarget,
   WebGLRenderer,
+  WebGLRenderTarget,
 } from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { createMeadow, type Meadow } from '~/utils/devlog-meadow'
 import { meadowParams } from '~/utils/devlog-meadow.config'
+import { createWindField, type WindField } from '~/utils/devlog-wind'
 import { DEVLOG_CAMERA_ARTICLES, DEVLOG_CAMERA_SCENE, type DevlogCamera } from '~/utils/timelines'
 
 /**
@@ -47,6 +53,10 @@ const DRAG_FOLLOW_S = 0.09
 // Au-dela de ce ratio, le champ vertical se resserre pour garder la largeur
 // relative de l'ilot sur les ecrans tres larges.
 const FOV_REF_ASPECT = 1.9
+const CUBE_EVERY = 4
+// Le reflet tient dans une petite sphere : un cinquieme des touffes suffit.
+const CUBE_DETAIL = 0.2
+const REFRACT_DETAIL = 0.6
 
 const host = useTemplateRef<HTMLDivElement>('host')
 const { theme } = useDevlogTheme()
@@ -58,6 +68,13 @@ let scene: Scene | null = null
 let meadow: Meadow | null = null
 let timer: Timer | null = null
 let raf = 0
+let frame = 0
+let cubeTarget: WebGLCubeRenderTarget | null = null
+let cubeCamera: CubeCamera | null = null
+let refractTarget: WebGLRenderTarget | null = null
+let pointer: Vector2 | null = null
+let wind: WindField | null = null
+const bufferSize = new Vector2()
 
 let angle = 0.5
 let target = 0.5
@@ -72,6 +89,10 @@ const wrap = (a: number) => ((a % TAU) + TAU) % TAU
 function resize() {
   if (!renderer) return
   renderer.setSize(window.innerWidth, window.innerHeight, false)
+  renderer.getDrawingBufferSize(bufferSize)
+  // Demi-resolution : la refraction est floue par nature, la moitie suffit.
+  refractTarget?.setSize(Math.ceil(bufferSize.x / 2), Math.ceil(bufferSize.y / 2))
+  if (refractTarget) meadow?.optics.setRefraction(refractTarget.texture, bufferSize.x, bufferSize.y)
   appliedKey = ''
   applyCamera()
 }
@@ -130,9 +151,49 @@ function tick() {
 
   applyCamera()
 
-  meadow.update(reducedMotion ? 0 : time)
-  if (!document.hidden) renderer.render(scene, camera)
+  meadow.setPointer(docked ? null : pointer, camera)
+  meadow.update(time, !reducedMotion)
+  if (wind && !document.hidden) {
+    const { pointerRadius, pointerSoftness } = meadow.params()
+    wind.step(renderer, dt, meadow.pointer.point, meadow.pointer.velocity, pointerRadius, pointerSoftness)
+  }
+  if (!document.hidden) renderFrame()
   raf = requestAnimationFrame(tick)
+}
+
+/**
+ * Trois passes : le metal reflete une cube map rendue a sa place (une image
+ * sur deux), le verre lit la scene rendue sans lui, puis l'image finale.
+ * L'ombre n'est calculee qu'une fois par image, a la premiere passe.
+ */
+function renderFrame() {
+  if (!renderer || !camera || !scene || !meadow || !cubeCamera || !refractTarget) return
+  const { reflector, refractors, sky } = meadow.optics
+  renderer.shadowMap.needsUpdate = true
+  for (const m of refractors) m.visible = false
+
+  // L'ilot tourne lentement : un reflet rafraichi a 15 Hz ne se voit pas,
+  // et chaque mise a jour coute six rendus plus le filtrage PMREM.
+  if (frame++ % CUBE_EVERY === 0) {
+    reflector.getWorldPosition(cubeCamera.position)
+    cubeCamera.updateMatrixWorld()
+    reflector.visible = false
+    scene.background = sky
+    meadow.optics.setDetail(CUBE_DETAIL)
+    cubeCamera.update(renderer, scene)
+    scene.background = null
+    reflector.visible = true
+  }
+
+  meadow.optics.setDetail(REFRACT_DETAIL)
+  renderer.setRenderTarget(refractTarget)
+  renderer.clear()
+  renderer.render(scene, camera)
+  renderer.setRenderTarget(null)
+  for (const m of refractors) m.visible = true
+  meadow.optics.setDetail(1)
+
+  renderer.render(scene, camera)
 }
 
 function onPointerDown(e: PointerEvent) {
@@ -141,7 +202,17 @@ function onPointerDown(e: PointerEvent) {
   velocity = 0
 }
 
+function trackPointer(e: PointerEvent) {
+  pointer ??= new Vector2()
+  pointer.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
+}
+
+function onPointerLeave() {
+  pointer = null
+}
+
 function onPointerMove(e: PointerEvent) {
+  if (e.pointerType === 'mouse' || drag) trackPointer(e)
   if (!drag) return
   target = drag.start + (e.clientX - drag.x) * DRAG_RAD_PER_PX
   const now = performance.now()
@@ -191,6 +262,7 @@ function init(el: HTMLDivElement) {
   renderer.toneMappingExposure = 1.05
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = PCFShadowMap
+  renderer.shadowMap.autoUpdate = false
   renderer.setClearColor(0x000000, 0)
   el.appendChild(renderer.domElement)
   renderer.domElement.className = 'block w-full h-full'
@@ -202,7 +274,13 @@ function init(el: HTMLDivElement) {
 
   camera = new PerspectiveCamera(40, 1, 0.1, 100)
 
-  meadow = createMeadow({ params: meadowParams(), small, envMap })
+  cubeTarget = new WebGLCubeRenderTarget(small ? 128 : 256, { type: HalfFloatType })
+  cubeCamera = new CubeCamera(0.05, 40, cubeTarget)
+  refractTarget = new WebGLRenderTarget(1, 1, { type: HalfFloatType })
+
+  wind = createWindField(small ? 64 : 128)
+  meadow = createMeadow({ params: meadowParams(), small, envMap, wind: wind.uniforms })
+  meadow.optics.setReflection(cubeTarget.texture)
   useDevlogMeadow().publish(meadow)
   meadow.setTheme(theme.value)
   meadow.setGrow(intro?.grow ?? 1)
@@ -220,6 +298,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', resize)
   useDevlogMeadow().publish(null)
   meadow?.dispose()
+  cubeTarget?.dispose()
+  wind?.dispose()
+  refractTarget?.dispose()
   renderer?.dispose()
   renderer?.domElement.remove()
   timer?.dispose()
@@ -237,6 +318,7 @@ onBeforeUnmount(() => {
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
+    @pointerleave="onPointerLeave"
   />
 
   <div
