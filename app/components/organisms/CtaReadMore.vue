@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const {
-  slug,
+  to,
   tags = [],
   publishDate,
   label = 'LIRE',
   published = true,
 } = defineProps<{
-  slug: string
+  to: string
   tags?: string[]
   publishDate: Date | string
   label?: string
@@ -38,7 +38,7 @@ const metaKey = computed(
   <div class="group relative flex flex-col gap-[16px] w-full">
     <NuxtLink
       v-if="published"
-      :to="`/blog/${slug}`"
+      :to="to"
       class="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       :aria-label="`Lire l'article : ${tagsLine} — ${formattedDate}`"
     />

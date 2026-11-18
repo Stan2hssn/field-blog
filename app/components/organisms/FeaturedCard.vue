@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const {
   num,
-  slug,
+  to,
   title,
   lede,
   readingTime,
@@ -9,7 +9,7 @@ const {
   published = true,
 } = defineProps<{
   num: string
-  slug: string
+  to: string
   title: string
   lede: string
   readingTime: number
@@ -28,7 +28,7 @@ const metaKey = computed(() => `${statusLabel.value}·${category}`)
   >
     <NuxtLink
       v-if="published"
-      :to="`/blog/${slug}`"
+      :to="to"
       class="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       :aria-label="`${title} — ${readingTime} minutes — ${category}`"
     />

@@ -18,12 +18,14 @@ const {
   categories,
   sections,
   next,
+  basePath = '/blog',
 } = defineProps<{
   publishDate: Date | string
   readingTime: number
   categories: string[]
   sections: SectionRef[]
   next?: NextChapterRef | null
+  basePath?: string
 }>()
 
 const { activeId } = useScrollSpy('[id^="rule-"]')
@@ -120,7 +122,7 @@ function isActive(num: string) {
       <hr class="w-full h-px border-0 bg-rule m-0" aria-hidden="true" />
       <div v-if="next && next.published" class="flex flex-col gap-[8px] items-start pt-[16px] w-full">
         <NuxtLink
-          :to="`/blog/${next.slug}`"
+          :to="`${basePath}/${next.slug}`"
           class="group flex flex-col gap-[8px] items-start w-full"
           :aria-label="`Chapitre suivant : ${next.title}`"
         >
@@ -134,7 +136,7 @@ function isActive(num: string) {
             {{ next.lede }}
           </p>
         </NuxtLink>
-        <ArrowLink :to="`/blog/${next.slug}`" tone="accent" variant="mono">
+        <ArrowLink :to="`${basePath}/${next.slug}`" tone="accent" variant="mono">
           LIRE LE CHAPITRE
         </ArrowLink>
       </div>

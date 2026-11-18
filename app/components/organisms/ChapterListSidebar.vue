@@ -9,17 +9,19 @@ const {
   velocity?: number
 }>()
 
+const TOTAL = CHAPTERS_MANIFEST.length
+
+// La fenetre suit le nombre d'articles : au-dela d'un demi-tour de chaque
+// cote, la boucle remontrerait les memes numeros.
 const RAIL_WIDTH = 22
 const RAIL_ITEM_HEIGHT = 22
-const RAIL_VISIBLE_COUNT = 15
+const RAIL_VISIBLE_COUNT = Math.min(15, TOTAL)
 const RAIL_HEIGHT = RAIL_VISIBLE_COUNT * RAIL_ITEM_HEIGHT
-const RAIL_RENDER_RANGE = 7
+const RAIL_RENDER_RANGE = Math.min(7, TOTAL / 2)
 
 const CURVE_AMOUNT = 60
 const CURVE_FADE_DISTANCE = 6
 const CURVE_VELOCITY_CAP = 1.5
-
-const TOTAL = CHAPTERS_MANIFEST.length
 
 function translateXFor(offset: number) {
   const d = Math.abs(offset)
@@ -40,7 +42,7 @@ const slots = computed(() => {
     for (let dk = -1; dk <= 1; dk++) {
       const k = kBest + dk
       const offset = i + k * TOTAL - scrollOffset
-      if (Math.abs(offset) <= RAIL_RENDER_RANGE) {
+      if (Math.abs(offset) < RAIL_RENDER_RANGE) {
         result.push({
           chapter: CHAPTERS_MANIFEST[i]!,
           chapterIdx: i,

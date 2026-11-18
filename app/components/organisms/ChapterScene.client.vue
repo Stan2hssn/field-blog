@@ -7,7 +7,10 @@ import {
   MeshStandardMaterial,
   PerspectiveCamera,
   PlaneGeometry,
+  SRGBColorSpace,
   Scene,
+  type Texture,
+  TextureLoader,
   WebGLRenderer,
 } from 'three'
 import { CHAPTERS_MANIFEST } from '~/utils/chapters'
@@ -85,7 +88,44 @@ function planeFor(key: string, index: number): Mesh<PlaneGeometry, MeshStandardM
   mesh.name = `chapitre ${CHAPTERS_MANIFEST[index]?.num ?? index}`
   planes.set(key, mesh)
   scene?.add(mesh)
+  loadPreview(index, material)
   return mesh
+}
+
+const loader = new TextureLoader()
+const previews: Texture[] = []
+let disposed = false
+
+/**
+ * La preview recouvre la carte comme un object-fit: cover. Une image absente
+ * laisse l'aplat CARD_COLOR plutot qu'une carte noire.
+ */
+function loadPreview(index: number, material: MeshStandardMaterial) {
+  const entry = CHAPTERS_MANIFEST[index]
+  if (!entry) return
+  loader.load(entry.preview, (texture) => {
+    if (disposed) {
+      texture.dispose()
+      return
+    }
+    texture.colorSpace = SRGBColorSpace
+    const size = chapterSize(index)
+    const cardAspect = size.rotated ? size.h / size.w : size.w / size.h
+    const image = texture.image as { width: number; height: number }
+    const imageAspect = image.width / image.height
+    if (cardAspect > imageAspect) {
+      texture.repeat.set(1, imageAspect / cardAspect)
+      texture.offset.set(0, (1 - texture.repeat.y) / 2)
+    } else {
+      texture.repeat.set(cardAspect / imageAspect, 1)
+      texture.offset.set((1 - texture.repeat.x) / 2, 0)
+    }
+    material.map = texture
+    material.color.set(0xffffff)
+    material.needsUpdate = true
+    previews.push(texture)
+    align()
+  })
 }
 
 /**
@@ -108,11 +148,14 @@ function hideOutOfRail(live: Set<string>) {
 
 /** Liberation reelle, au demontage seulement. */
 function disposePlanes() {
+  disposed = true
   for (const [, mesh] of planes) {
     scene?.remove(mesh)
     mesh.material.dispose()
   }
   planes.clear()
+  for (const texture of previews) texture.dispose()
+  previews.length = 0
 }
 
 /** Chapitre survole, et avancement 0..1 de chaque plane vers son etat de survol. */
@@ -352,7 +395,7 @@ onBeforeUnmount(() => {
       v-for="slot in slots"
       :key="slot.key"
       :ref="(el) => keepCard(slot.key, (el as { $el?: Element })?.$el ?? (el as Element | null))"
-      :to="`/blog/${slot.chapter.slug}`"
+      :to="slot.chapter.path"
       class="absolute top-1/2 left-0 flex items-center justify-center will-change-transform"
       :class="failed ? 'bg-bg-card border border-rule/10' : ''"
       :style="{

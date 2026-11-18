@@ -99,7 +99,7 @@ function isActive(idx: number) {
     <NuxtLink
       v-for="slot in slots"
       :key="slot.key"
-      :to="`/blog/${slot.chapter.slug}`"
+      :to="slot.chapter.path"
       class="absolute top-1/2 left-0 flex items-center justify-center w-full will-change-transform transition-opacity duration-200 ease-out"
       :style="{
         transform: `translateY(calc(-50% + ${slot.y}px))`,

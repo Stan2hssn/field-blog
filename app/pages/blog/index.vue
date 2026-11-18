@@ -4,18 +4,39 @@ import { activeIndex } from "~/utils/carousel-layout";
 import { useRailState } from "~/composables/useRailState";
 import { useTrails } from "~/composables/useTrails";
 import { INTRO_TIMELINE, TIMELINE_BUILDERS } from "~/utils/timelines";
+import {
+  GALLERY_RATES,
+  RAIL_MAGNET,
+  isMagnetSettled,
+  offsetForIndex,
+  stepMagnet,
+  wheelPixels,
+  type MagnetState,
+} from "~/utils/rail-motion";
+
+interface PublishedChapter {
+  title: string;
+  lede: string;
+  readingTime: number;
+  publishDate: Date | string;
+  tags?: string[];
+}
 
 const { data: publishedChapters } = await useAsyncData(
   "blog-index-chapters",
-  () => queryCollection("blog").order("num", "ASC").all(),
+  async () => {
+    const [blog, devlog] = await Promise.all([
+      queryCollection("blog").all(),
+      queryCollection("devlog").all(),
+    ]);
+    return [...blog, ...devlog];
+  },
 );
 
-const publishedBySlug = computed(() => {
-  const map = new Map<
-    string,
-    NonNullable<typeof publishedChapters.value>[number]
-  >();
-  for (const c of publishedChapters.value ?? []) map.set(c.slug, c);
+// Cle = chemin : les slugs du blog et du devlog partagent le prefixe NN-.
+const publishedByPath = computed(() => {
+  const map = new Map<string, PublishedChapter>();
+  for (const c of publishedChapters.value ?? []) map.set(c.path, c);
   return map;
 });
 
@@ -31,6 +52,7 @@ const carousel = CHAPTERS_MANIFEST.map((entry) => {
   return {
     num: entry.num,
     slug: entry.slug,
+    path: entry.path,
     fullTitle: entry.fullTitle,
     fallbackLede,
     categoryLabel: CHAPTER_LEVELS[entry.level].label.toUpperCase(),
@@ -45,7 +67,6 @@ const INTRO_RUN_DURATION = 1400;
 
 
 const scrollOffset = ref(-INTRO_RUN_CHAPTERS);
-const targetOffset = ref(0);
 const settledOffset = ref(0);
 
 const BASE_GAP = 28;
@@ -60,7 +81,7 @@ const currentChapterIdx = computed(
 );
 const currentEntry = computed(() => carousel[currentChapterIdx.value]!);
 const currentPublished = computed(
-  () => publishedBySlug.value.get(currentEntry.value.slug) ?? null,
+  () => publishedByPath.value.get(currentEntry.value.path) ?? null,
 );
 const currentIsPublished = computed(() => currentPublished.value !== null);
 
@@ -69,7 +90,7 @@ const currentChapter = computed(() => {
   const p = currentPublished.value;
   return {
     num: e.num,
-    slug: e.slug,
+    path: e.path,
     title: p?.title ?? e.fullTitle,
     lede: p?.lede ?? e.fallbackLede,
     readingTime: p?.readingTime ?? 8,
@@ -80,31 +101,27 @@ const currentChapter = computed(() => {
 });
 
 if (import.meta.client) {
+  // Moteur du MoonRing d'Audemars Piguet : une impulsion se libere dans la
+  // cible, un aimant permanent la ramene sur le chapitre le plus proche, et
+  // l'affichage la poursuit. Unite : le chapitre.
+  let state: MagnetState = { impulse: 0, target: 0, current: scrollOffset.value };
   let rafId: number | null = null;
-  let snapTimer: ReturnType<typeof setTimeout> | null = null;
-  let snapPhase = false;
-  let snapCommitted = false;
-  const WHEEL_SENSITIVITY = 1 / 400;
-  const TOUCH_SENSITIVITY = 1 / 60;
-  const DRAG_DAMPING = 0.22;
-  const SNAP_DAMPING = 0.04;
+  let lastTime = 0;
+  let introActive = false;
+  const WHEEL_GAIN = 1 / 400;
+  const TOUCH_GAIN = 1 / 90;
   const SETTLE_EPSILON = 0.02;
-  const REST_EPSILON = 0.0015;
 
-  let introRafId: number | null = null;
-
-  function armSnap(active: boolean) {
-    snapPhase = active;
-    snapCommitted = false;
+  function commitSettled() {
+    const nearest = Math.round(state.target);
+    if (Math.abs(state.target - nearest) < SETTLE_EPSILON) settledOffset.value = nearest;
   }
 
   function cancelIntroRun() {
-    if (introRafId === null) return;
-    cancelAnimationFrame(introRafId);
-    introRafId = null;
-    targetOffset.value = Math.round(scrollOffset.value);
-    settledOffset.value = targetOffset.value;
-    armSnap(true);
+    if (!introActive) return;
+    introActive = false;
+    state = { impulse: 0, target: Math.round(state.current), current: state.current };
+    settledOffset.value = state.target;
     kick();
   }
 
@@ -122,31 +139,28 @@ if (import.meta.client) {
 
   /**
    * L'intro est une TIMELINE et non une boucle rAF de plus. Elle est declaree
-   * dans trails, donc editable a chaud depuis l'onglet Timeline de la sonde :
-   * on deplace un keyframe, on change un easing, et l'intro rejoue avec. Une
-   * courbe ecrite en dur dans un tick ne se regle qu'en rechargeant.
-   *
-   * Le rail reste pilote par `scrollOffset` : la timeline ne fait qu'y ecrire,
-   * elle ne double pas la geometrie du carrousel.
+   * dans trails, donc editable a chaud depuis l'onglet Timeline de la sonde.
+   * Elle ecrit la position ; l'aimant reprend la main a la fin.
    */
   function runIntroCarousel() {
     const from = scrollOffset.value;
+    introActive = true;
     void useTrails(INTRO_TIMELINE, TIMELINE_BUILDERS[INTRO_TIMELINE]).then((tl) => {
       const rail = tl.subscribe("rail", { offset: from });
       const off = rail.onApply((values) => {
-        const prev = scrollOffset.value;
-        scrollOffset.value = values.offset ?? 0;
-        const signed = scrollOffset.value - prev;
-        dynamicGap.value =
-          BASE_GAP + Math.min(Math.abs(signed) * VELOCITY_FACTOR, MAX_GAP_EXTRA);
-        scrollVelocity.value = signed;
+        if (!introActive) {
+          off();
+          rail.release();
+          return;
+        }
+        applyOffset(values.offset ?? 0);
+        state = { impulse: 0, target: scrollOffset.value, current: scrollOffset.value };
         if (tl.playhead < tl.duration) return;
-        // Fin de course : on rend la main au defilement, sans laisser la
-        // timeline continuer d'ecrire sous les doigts de l'utilisateur.
         off();
         rail.release();
-        targetOffset.value = scrollOffset.value;
-        settledOffset.value = scrollOffset.value;
+        introActive = false;
+        state.target = Math.round(state.current);
+        settledOffset.value = state.target;
         dynamicGap.value = BASE_GAP;
         scrollVelocity.value = 0;
       });
@@ -155,38 +169,47 @@ if (import.meta.client) {
     });
   }
 
-  function maybeWrap() {
-    if (Math.abs(scrollOffset.value) > 500) {
-      const mod = ((scrollOffset.value % TOTAL) + TOTAL) % TOTAL;
-      scrollOffset.value = mod;
-      targetOffset.value = mod;
-      settledOffset.value =
-        ((settledOffset.value % TOTAL) + TOTAL) % TOTAL;
-    }
+  function applyOffset(next: number) {
+    const signed = next - scrollOffset.value;
+    scrollOffset.value = next;
+    dynamicGap.value =
+      BASE_GAP + Math.min(Math.abs(signed) * VELOCITY_FACTOR, MAX_GAP_EXTRA);
+    scrollVelocity.value = signed;
   }
 
-  function animate() {
-    const diff = targetOffset.value - scrollOffset.value;
-    if (snapPhase && !snapCommitted && Math.abs(diff) < SETTLE_EPSILON) {
-      snapCommitted = true;
-      settledOffset.value = Math.round(targetOffset.value);
-    }
-    if (Math.abs(diff) < REST_EPSILON) {
-      scrollOffset.value = targetOffset.value;
+  function maybeWrap() {
+    if (Math.abs(state.current) <= 500) return;
+    const shift = Math.round(state.current / TOTAL) * TOTAL;
+    state = {
+      impulse: state.impulse,
+      target: state.target - shift,
+      current: state.current - shift,
+    };
+    scrollOffset.value -= shift;
+    settledOffset.value -= shift;
+  }
+
+  function animate(time: number) {
+    const dt = lastTime ? Math.min((time - lastTime) / 1000, 1 / 20) : 1 / 60;
+    lastTime = time;
+    const magnet =
+      Math.round(state.target) === settledOffset.value
+        ? RAIL_MAGNET.activeMagnet
+        : RAIL_MAGNET.magnet;
+    state = stepMagnet(state, { ...GALLERY_RATES, magnet }, dt);
+    applyOffset(state.current);
+    commitSettled();
+    if (isMagnetSettled(state)) {
+      state.current = state.target = Math.round(state.target);
+      applyOffset(state.current);
       dynamicGap.value = BASE_GAP;
       scrollVelocity.value = 0;
+      settledOffset.value = state.target;
       rafId = null;
+      lastTime = 0;
       maybeWrap();
       return;
     }
-    const damp = snapPhase ? SNAP_DAMPING : DRAG_DAMPING;
-    const prev = scrollOffset.value;
-    scrollOffset.value += diff * damp;
-    const signed = scrollOffset.value - prev;
-    const magnitude = Math.abs(signed);
-    const extraGap = Math.min(magnitude * VELOCITY_FACTOR, MAX_GAP_EXTRA);
-    dynamicGap.value = BASE_GAP + extraGap;
-    scrollVelocity.value = signed;
     rafId = requestAnimationFrame(animate);
   }
 
@@ -194,59 +217,48 @@ if (import.meta.client) {
     if (rafId === null) rafId = requestAnimationFrame(animate);
   }
 
-  function snapToNearest() {
-    targetOffset.value = Math.round(targetOffset.value);
-    armSnap(true);
+  function push(chapters: number) {
+    state.impulse += chapters;
+    kick();
+  }
+
+  function step(delta: number) {
+    state.target = Math.round(state.target) + delta;
     kick();
   }
 
   function goToNum(num: string) {
     const idx = CHAPTERS_MANIFEST.findIndex((c) => c.num === num);
     if (idx < 0) return;
-    const currentRound = Math.round(scrollOffset.value);
-    const currentMod = ((currentRound % TOTAL) + TOTAL) % TOTAL;
-    let delta = idx - currentMod;
-    while (delta > TOTAL / 2) delta -= TOTAL;
-    while (delta < -TOTAL / 2) delta += TOTAL;
-    targetOffset.value = currentRound + delta;
-    armSnap(true);
+    state.target = offsetForIndex(idx, TOTAL, state.target);
     kick();
   }
 
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
     cancelIntroRun();
-    if (snapTimer) clearTimeout(snapTimer);
-    armSnap(false);
-    targetOffset.value += e.deltaY * WHEEL_SENSITIVITY;
-    kick();
-    snapTimer = setTimeout(snapToNearest, 180);
+    push(wheelPixels(e.deltaY, e.deltaMode) * WHEEL_GAIN);
   };
 
   const onKey = (e: KeyboardEvent) => {
     cancelIntroRun();
-    const base = Math.round(targetOffset.value);
     if (
       e.key === "ArrowDown" ||
       e.key === "ArrowRight" ||
       e.key === "PageDown"
     ) {
       e.preventDefault();
-      targetOffset.value = base + 1;
-      armSnap(true);
-      kick();
+      step(1);
     } else if (
       e.key === "ArrowUp" ||
       e.key === "ArrowLeft" ||
       e.key === "PageUp"
     ) {
       e.preventDefault();
-      targetOffset.value = base - 1;
-      armSnap(true);
-      kick();
+      step(-1);
     } else if (e.key === "Home") {
       e.preventDefault();
-      goToNum("01");
+      goToNum(CHAPTERS_MANIFEST[0]!.num);
     } else if (e.key === "End") {
       e.preventDefault();
       goToNum(CHAPTERS_MANIFEST[TOTAL - 1]!.num);
@@ -257,20 +269,15 @@ if (import.meta.client) {
   const onTouchStart = (e: TouchEvent) => {
     cancelIntroRun();
     lastTouchY = e.touches[0]?.clientY ?? null;
-    if (snapTimer) clearTimeout(snapTimer);
-    armSnap(false);
   };
   const onTouchMove = (e: TouchEvent) => {
     if (lastTouchY === null) return;
     const currY = e.touches[0]?.clientY ?? lastTouchY;
-    const delta = lastTouchY - currY;
-    targetOffset.value += delta * TOUCH_SENSITIVITY;
-    kick();
+    push((lastTouchY - currY) * TOUCH_GAIN);
     lastTouchY = currY;
   };
   const onTouchEnd = () => {
     lastTouchY = null;
-    snapToNearest();
   };
 
   onMounted(() => {
@@ -298,9 +305,8 @@ if (import.meta.client) {
     window.removeEventListener("touchstart", onTouchStart);
     window.removeEventListener("touchmove", onTouchMove);
     window.removeEventListener("touchend", onTouchEnd);
-    if (snapTimer) clearTimeout(snapTimer);
+    introActive = false;
     if (rafId !== null) cancelAnimationFrame(rafId);
-    if (introRafId !== null) cancelAnimationFrame(introRafId);
   });
 }
 
@@ -321,10 +327,8 @@ useHead({
 </script>
 
 <template>
-  <main
+  <section
     class="relative bg-bg w-[100dvw] h-[100dvh] overflow-hidden flex items-stretch gap-[128px] p-[32px] touch-none select-none"
-   
-    role="region"
     aria-roledescription="carousel"
     aria-label="Chapitres FIELD®"
   >
@@ -353,7 +357,7 @@ useHead({
 
       <FeaturedCard
         :num="currentChapter.num"
-        :slug="currentChapter.slug"
+        :to="currentChapter.path"
         :title="currentChapter.title"
         :lede="currentChapter.lede"
         :reading-time="currentChapter.readingTime"
@@ -380,7 +384,7 @@ useHead({
       </div>
 
       <CtaReadMore
-        :slug="currentChapter.slug"
+        :to="currentChapter.path"
         :tags="currentChapter.tags"
         :publish-date="currentChapter.publishDate"
         :published="currentIsPublished"
@@ -391,5 +395,5 @@ useHead({
       Chapitre {{ currentChapter.num }} sur {{ TOTAL }} —
       {{ currentChapter.title }}
     </div>
-  </main>
+  </section>
 </template>
