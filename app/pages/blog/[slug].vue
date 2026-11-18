@@ -79,7 +79,7 @@ useSeoMeta({
 
     <main v-if="chapter" id="main-content" class="relative bg-bg min-h-screen p-[32px]">
 
-      <div class="ml-[22.99vw] grid grid-cols-[54.58vw_3.40vw_19.58vw] max-xl:grid-cols-[minmax(0,1fr)_32px_240px] max-lg:grid-cols-1 max-lg:gap-y-16 max-lg:ml-0 max-lg:pt-[120px]">
+      <div class="grid grid-cols-1 gap-y-16 pt-[96px] lg:ml-[22.99vw] lg:gap-y-0 lg:pt-0 lg:grid-cols-[minmax(0,1fr)_32px_240px] xl:grid-cols-[minmax(0,1fr)_3.40vw_19.58vw]">
         <article class="min-w-0">
           <ArticleHeader
             state="full"
@@ -129,7 +129,7 @@ useSeoMeta({
           <ClosingBlock :text="chapter.closing" class="mt-[176px] pt-[40px] border-t border-rule" />
         </article>
 
-        <div aria-hidden="true" />
+        <div aria-hidden="true" class="hidden lg:block" />
 
         <aside
           class="lg:mt-[384px] lg:sticky lg:top-[32px] lg:self-start"

@@ -9,6 +9,7 @@ const {
   title,
   body,
   prefix,
+  transitionName,
 } = defineProps<{
   state?: 'full' | 'preview'
   align?: 'left' | 'center'
@@ -19,6 +20,8 @@ const {
   title: string
   body?: string
   prefix?: string
+  /** Nom de View Transition partage avec le titre de la liste qui y mene. */
+  transitionName?: string
 }>()
 
 const isFull = state === 'full'
@@ -54,11 +57,11 @@ const layoutId = num ? `article-header-${num}` : undefined
   >
     <div
       v-if="metaSegments.length"
-      class="flex font-mono font-medium gap-[24px] text-[11px] leading-[16px] tracking-kicker text-rule whitespace-nowrap w-full"
+      class="flex flex-wrap font-mono font-medium gap-x-[24px] gap-y-[8px] text-[11px] leading-[16px] tracking-kicker text-rule w-full"
       :class="align === 'center' ? 'items-center justify-center' : 'items-start'"
     >
       <template v-for="(seg, i) in metaSegments" :key="i">
-        <span>{{ seg }}</span>
+        <span class="whitespace-nowrap">{{ seg }}</span>
         <span v-if="i < metaSegments.length - 1" aria-hidden="true">·</span>
       </template>
     </div>
@@ -76,6 +79,7 @@ const layoutId = num ? `article-header-${num}` : undefined
         :class="[isFull ? 'max-w-full' : 'w-full text-[32px] leading-[40px] tracking-[-0.64px]']"
         :style="isFull
           ? {
+              viewTransitionName: transitionName,
               fontSize: 'calc(var(--title-unit) * var(--title-scale))',
               lineHeight: '1.125',
               letterSpacing: '-0.02em',
