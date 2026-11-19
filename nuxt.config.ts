@@ -43,13 +43,16 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
-      routes: ['/blog', '/devlog'],
+      routes: ['/devlog'],
       ignore: ['/_dev'],
     },
   },
 
   routeRules: {
-    '/': { redirect: { to: '/blog', statusCode: 301 } },
+    // La liste du devlog reprend aussi les chapitres du blog : l'ancien index n'est plus l'entree.
+    '/': { redirect: { to: '/devlog', statusCode: 302 } },
+    '/blog': { redirect: { to: '/devlog', statusCode: 301 } },
+    '/blog/**': { redirect: { to: '/devlog/**', statusCode: 301 } },
   },
 
   experimental: {

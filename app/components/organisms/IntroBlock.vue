@@ -15,7 +15,7 @@ const { time, tzAbbr } = useClock('Europe/Paris', 'en-US')
       <div class="flex items-center gap-[16px]">
         <p>
           <NuxtLink
-            to="/blog"
+            to="/devlog"
             class="underline underline-offset-[3px] decoration-from-font"
             :aria-current="isIndex ? 'page' : undefined"
           >Index</NuxtLink><span>,</span>

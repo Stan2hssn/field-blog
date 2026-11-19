@@ -18,7 +18,7 @@ const {
   categories,
   sections,
   next,
-  basePath = '/blog',
+  basePath = '/devlog',
 } = defineProps<{
   publishDate: Date | string
   readingTime: number

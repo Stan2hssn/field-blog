@@ -7,7 +7,7 @@ useSeoMeta({
 
 <template>
   <main class="bg-bg min-h-screen flex flex-col items-start gap-[64px] p-[32px]">
-    <BrandLogo as="link" to="/blog" />
+    <BrandLogo as="link" to="/devlog" />
 
     <div class="max-w-2xl space-y-8">
       <Kicker tone="accent">À PROPOS — BIENTÔT</Kicker>
@@ -18,7 +18,7 @@ useSeoMeta({
 
       <BodyText size="lg" tone="secondary">
         Cette page n'est pas encore écrite. En attendant, retourne à
-        <NuxtLink to="/blog" class="underline underline-offset-[3px] text-primary">
+        <NuxtLink to="/devlog" class="underline underline-offset-[3px] text-primary">
           l'index des chapitres
         </NuxtLink>.
       </BodyText>

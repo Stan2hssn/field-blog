@@ -30,8 +30,8 @@ type ListEntry = {
   readingTime: number
 }
 
-// Les chapitres du blog (premiere version du site) gardent leur page et leur
-// mise en page checklist : la liste les range simplement avec le devlog.
+// Les chapitres du blog (premiere version du site) gardent leur mise en page
+// checklist, mais vivent sous /devlog comme le reste : un seul blog.
 const { data: entries } = await useAsyncData('devlog-index', async (): Promise<ListEntry[]> => {
   const [devlog, blog] = await Promise.all([
     queryCollection('devlog').all(),
@@ -39,7 +39,7 @@ const { data: entries } = await useAsyncData('devlog-index', async (): Promise<L
   ])
   return [
     ...devlog.map(e => ({ slug: e.slug, to: `/devlog/${e.slug}`, title: e.title, lede: e.lede, tags: e.tags, publishDate: e.publishDate, readingTime: e.readingTime })),
-    ...blog.map(e => ({ slug: e.slug, to: `/blog/${e.slug}`, title: e.title, lede: e.lede, tags: e.tags ?? [], publishDate: e.publishDate, readingTime: e.readingTime })),
+    ...blog.map(e => ({ slug: e.slug, to: `/devlog/${e.slug}`, title: e.title, lede: e.lede, tags: e.tags ?? [], publishDate: e.publishDate, readingTime: e.readingTime })),
   ].sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
 })
 

@@ -11,7 +11,7 @@ const isDevlog = computed(() => route.path.startsWith('/devlog'))
   <BrandLogo
     v-if="!isDevlog"
     as="link"
-    to="/blog"
+    to="/devlog"
     size="hero"
     class="app-logo fixed left-[32px] top-[32px] z-40"
   />
