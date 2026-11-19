@@ -1,3 +1,11 @@
+import { fileURLToPath } from 'node:url'
+import type { SondeModuleOptions } from '@sonde/core/nuxt'
+
+const SONDE: SondeModuleOptions = {
+  panels: '~/sonde.config',
+  routes: { meadow: 'app/utils/devlog-meadow.values.json' },
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-05-21',
 
@@ -8,13 +16,14 @@ export default defineNuxtConfig({
     '@nuxtjs/google-fonts',
     '@pinia/nuxt',
     '@vueuse/nuxt',
-    // SONDE est une dependance : le module ne fait rien hors developpement.
-    '@sonde/core/nuxt',
   ],
 
-  sonde: {
-    panels: '~/sonde.config',
-    routes: { meadow: 'app/utils/devlog-meadow.values.json' },
+  // La sonde ne sert qu'en developpement, et vit dans un depot prive que le build
+  // Vercel ne peut pas cloner : chargee en dev seulement, elle est une dependance
+  // optionnelle, dont l'echec d'installation n'arrete pas pnpm. Ses options passent
+  // par le module : hors dev, la cle `sonde` n'existerait pas dans le type de la config.
+  $development: {
+    modules: [['@sonde/core/nuxt', SONDE]],
   },
 
   content: {
@@ -64,15 +73,10 @@ export default defineNuxtConfig({
   ],
 
   alias: {
-    // trails n'est pas dans @sonde/core : il reste la source partagee de `_lib`
-    // en attendant son propre paquet. Il est importe a l'execution (blog,
-    // devlog), donc aussi par le build de production.
-    '@spices/trails': '/Users/stan_husson/Dev/PV/_lib/trails',
-  },
-
-  // Autorise le serveur de dev a servir `_lib/trails`, hors de la racine.
-  vite: {
-    server: { fs: { allow: ['..', '/Users/stan_husson/Dev/PV/_lib/trails'] } },
+    // Copie du runtime de trails (SONDE-DEVTOOLS/trails @ c87d8a3, sans studio) :
+    // le site l'execute en production et Vercel ne peut pas cloner le depot
+    // prive. A resynchroniser a la main quand trails evolue.
+    '@spices/trails': fileURLToPath(new URL('./app/lib/trails', import.meta.url)),
   },
 
   css: [
