@@ -5,7 +5,7 @@ series: "R3D"
 title: "Une image, des vecteurs, une caméra."
 lede: "Avant la première sphère, il faut une architecture, un endroit où écrire des pixels, une algèbre pour parler d'espace et une caméra qui sait d'où partent les rayons. Jour 1, les fondations, avec tout le code."
 publishDate: 2026-11-18
-readingTime: 31
+readingTime: 33
 tags:
   - "C++"
   - "Raytracing"
@@ -38,6 +38,8 @@ Les deux premiers jours suivent [Ray Tracing in One Weekend](https://raytracing.
 Pas besoin de savoir coder en C++ pour suivre. Le code est écrit pour être lu : des noms longs, une idée par ligne, des variables intermédiaires qui portent le nom de la formule. Les optimisations viennent après, une fois que la version simple marche, et toujours avec une mesure. Chaque construction du langage est expliquée la première fois qu'elle apparaît, dans un encadré « C++ en clair », avec son équivalent JS ou TypeScript quand il existe.
 
 Si tu viens du GLSL comme moi, tu vas reconnaître beaucoup de choses. Un fragment shader qui fait du raymarching, c'est déjà un raytracer : une fonction appelée une fois par pixel, qui fabrique un rayon et renvoie une couleur. La différence, c'est que personne ne fait la boucle pour toi. Ni le framebuffer. Ni `vec3`. Ni l'export. Jour 1, on construit tout ça.
+
+Ce billet est aussi un carnet. Je l'ai écrit en codant, et j'y ai laissé les moments où ça a coincé : une image vide, un binaire périmé, un éditeur qui ne trouve pas un fichier pourtant bien là. Ils sont rangés dans des encadrés « Carnet de bord ». Les explications, elles, restent celles d'un tutoriel : tu peux sauter les encadrés sans rien perdre.
 
 On part du squelette du dépôt : un `CMakeLists.txt`, un `src/main.cc` qui renvoie 0, un test Catch2 bidon dans `tests/smoke_test.cc`. Ça compile, ça ne fait rien.
 
@@ -266,6 +268,12 @@ ctest --test-dir build --output-on-failure   # les tests
 ./build/r3d > image.ppm                      # le rendu
 ```
 
+::devlog-note{kicker="CARNET DE BORD" tone="accent"}
+Ma première configuration a échoué deux fois de suite. D'abord `Cannot find source file: tests/vec3_test.cc` : mon fichier s'appelait encore `vec3.test.cc`, avec un point à la place du tiret bas. Puis `No SOURCES given to target: r3d_core` : j'avais commenté `image.cc` en attendant de l'écrire, et une bibliothèque `STATIC` sans aucun fichier est refusée. C'est exactement pour ça que le squelette démarre en `INTERFACE` : tant qu'il n'y a rien à compiler, la bibliothèque ne peut pas être `STATIC`.
+
+Autre surprise : l'éditeur soulignait `#include <catch2/...>` en rouge alors que tout compilait. Le build tournait dans le dev container, l'éditeur sur le Mac, et `compile_commands.json` pointait vers `/workspaces/R3D/...`, un chemin qui n'existe que dans le container. Même cause, autre symptôme : le formatage changeait selon la machine, parce que ce n'était pas la même version de clang-format. Depuis, j'ouvre le projet dans le container, et l'éditeur voit exactement ce que voit le compilateur.
+::
+
 ::devlog-section{num="02" kicker="VEC3" title="Un type pour tout ce qui a trois nombres."}
 ::
 
@@ -288,6 +296,12 @@ Deux écoles :
 | Types distincts `Point3`, `Vec3`, `Color` | Les erreurs de sens deviennent des erreurs de compilation | Trois fois plus d'opérateurs, des conversions explicites partout |
 
 Je prends la première, comme le livre. Les alias `using Point3 = Vec3;` (le `type Point3 = Vec3` de TypeScript : un autre nom, pas un nouveau type) ne protègent de rien, mais ils documentent l'intention. Pour un raytracer qu'on veut voir tourner en deux jours, la sécurité de types ne paie pas encore son coût.
+
+::devlog-note{kicker="CARNET DE BORD" tone="accent"}
+Écrire `color.x` pour parler du rouge m'a gêné tout de suite. Mon premier réflexe : une classe `Color` qui hérite de `Vec3`, avec des champs `r, g, b, a`. Mauvaise idée sur toute la ligne. Une couleur hériterait de `cross` et de `length`, `rouge + bleu` renverrait un `Vec3` au lieu d'une `Color`, et une couleur passerait sans broncher là où on attend une position. Quant à l'alpha, un raytracer n'en fait rien : la transparence d'un verre, c'est de la réfraction, calculée par les rayons, pas un canal qu'on mélange.
+
+Dans mon propre dépôt, j'ai fini par écrire un `struct Color { r, g, b }` séparé, avec seulement les opérations dont la lumière a besoin : addition, produit par un nombre, produit de deux couleurs, et un `lerp`. Le billet garde l'alias, plus court pour démarrer. Les deux tiennent. L'héritage, non.
+::
 
 ### Un agrégat, pas une classe
 
@@ -1019,6 +1033,12 @@ Prendre un `std::ostream&` plutôt qu'un nom de fichier, c'est ce qui permet d'�
 
 On écrit l'image sur la sortie standard et on redirige vers un fichier. Conséquence directe : tout message de progression doit partir sur `std::clog` (stderr), jamais sur `std::cout`. Un seul `std::cout << "done"` oublié et le fichier est corrompu.
 
+::devlog-note{kicker="CARNET DE BORD" tone="accent"}
+Mon premier `image.ppm` faisait zéro octet. `writePpm` était écrite, mais `main` se contentait de `return 0` : une fonction qui existe ne s'exécute pas toute seule. Le deuxième faisait trois lignes, l'en-tête et rien d'autre, parce que la double boucle n'était pas encore écrite. Et entre les deux, j'ai corrigé pendant dix minutes un fichier que CMake ne compilait pas : une vieille copie de `ppm.cc` dans un sous-dossier, pendant que je relançais sagement un binaire daté de 10 h 16.
+
+Deux réflexes en sont sortis. Enchaîner `cmake --build build && ./build/r3d > image.ppm`, pour qu'un build raté n'écrive jamais d'image. Et regarder `wc -l image.ppm` avant d'ouvrir quoi que ce soit : 3 lignes d'en-tête plus une par pixel, sinon il manque quelque chose.
+::
+
 ### Le test de l'image
 
 Le test vérifie deux choses d'un coup : l'ordre row-major (le pixel $(2, 0)$ est le troisième écrit, le pixel $(0, 1)$ le quatrième) et le format exact du fichier. Le `std::ostringstream` remplace le fichier : aucun disque, aucun nettoyage.
@@ -1123,6 +1143,8 @@ Premier jalon, si tu veux voir quelque chose avant d'avoir une caméra : dans `m
 
 ::devlog-section{num="04" kicker="LE RAYON" title="Une origine, une direction, un paramètre."}
 ::
+
+À ce stade, j'avais un tableau de pixels et une algèbre pour parler d'espace, mais rien qui relie l'un à l'autre. Le dégradé rouge et vert prouvait que l'écriture marchait, pas qu'on regardait quoi que ce soit. Le rayon est la pièce qui manque : c'est lui qui transforme un pixel en question posée à la scène.
 
 Un rayon, c'est une demi-droite. On le décrit avec un point de départ $O$ et une direction $\mathbf{D}$, et n'importe quel point du rayon s'obtient en avançant d'une quantité $t$ le long de $\mathbf{D}$.
 
@@ -1617,6 +1639,8 @@ Le test « tête en bas » est le troisième : si le signe de `viewportV` saute,
 ::devlog-section{num="06" kicker="LE CIEL" title="Premier rendu : un dégradé qui dépend de la direction."}
 ::
 
+Après une journée de fondations invisibles, voici la première image qui dépend vraiment de tout le reste : les vecteurs, l'image, le rayon et la caméra. Si un seul maillon est faux, ça se voit.
+
 Pas encore d'objet dans la scène. Alors tout rayon part à l'infini, et il faut bien lui donner une couleur. Le livre propose un ciel : blanc à l'horizon, bleu au zénith. C'est le premier rendu qui utilise vraiment la caméra.
 
 ### Un mélange linéaire
@@ -1805,5 +1829,7 @@ Treize tests, trois modules compilés, un exécutable qui écrit une image. Ce q
 - **`r3d_core` est compilée une fois et liée deux fois.** Chaque nouveau `.cc` s'ajoute à sa liste, chaque nouveau test à celle de `r3d_tests`.
 - **Les fonctions de calcul prennent des flux, pas des fichiers.** `writePpm` écrit dans un `ostringstream` pendant les tests et dans `std::cout` en vrai.
 - **Les pièges du jour sont tous silencieux** : division entière, ODR, axe $y$ inversé, `NaN`, un `cout` en trop. Aucun ne plante. Les tests sont là pour ceux qui ne se voient pas à l'œil.
+
+Ce qui m'a le plus surpris ce premier jour, ce ne sont pas les maths. Presque tous mes blocages venaient des outils : CMake, l'éditeur, un binaire périmé, un fichier au mauvais endroit. Jamais d'une formule. C'est aussi pour ça que les tests arrivent dès le premier jour : ils séparent « mon code est faux » de « mon outillage me trompe ».
 
 Demain : des sphères, des normales, de l'antialiasing et les premiers matériaux. Le ciel va enfin servir de lumière.
